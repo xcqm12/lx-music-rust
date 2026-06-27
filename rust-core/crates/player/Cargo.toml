@@ -1,0 +1,29 @@
+[package]
+name = "player"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+common = { path = "../common" }
+
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+log = "0.4"
+dashmap = "6.0"
+parking_lot = "0.12"
+
+cpal = "0.15"  # 跨平台音频播放
+rubato = "0.16" # 音频重采样
+ringbuf = "0.4" # 环形缓冲区
+
+# 音频解码
+symphonia = { version = "0.5", features = ["all", "opt-simd"] }
+
+# 网络音频流
+reqwest = { version = "0.12", features = ["stream", "rustls-tls"] }
+futures = "0.3"
+
+[dev-dependencies]
+tokio-test = "0.4"
