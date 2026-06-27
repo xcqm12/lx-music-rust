@@ -19,6 +19,11 @@ Rust 核心模块重大更新，修复多个编译错误并完成多架构支持
 - **QQ 音乐源**：修复 GUID 生成中整数溢出问题，使用 i64 类型后缀
 - **歌词 FFI**：修复 `to_jstring` 和 `from_json` 函数的生命周期注解
 
+### 新增
+
+- **SafeText 组件**：新增安全文本组件，强制将 children 转换为字符串显示，规避 RN Text 组件校验报错
+- **PageContent 更新**：使用 SafeText 替代普通 Text 组件，提升文本渲染安全性
+
 ### 构建
 
 - 完成 arm64-v8a、armeabi-v7a、x86_64、x86 四架构 Rust 库编译
