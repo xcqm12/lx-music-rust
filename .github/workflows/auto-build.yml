@@ -1,0 +1,92 @@
+name: Auto Build APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'microsoft'
+          java-version: '17'
+          cache: gradle
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26b
+
+      - name: Install Rust Android targets
+        run: |
+          rustup target add aarch64-linux-android
+          rustup target add armv7-linux-androideabi
+          rustup target add x86_64-linux-android
+          rustup target add i686-linux-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build Rust core
+        env:
+          ANDROID_NDK_HOME: ${{ env.NDK_PATH }}
+        run: |
+          cargo ndk -t arm64-v8a -o android/app/src/main/jniLibs build --release
+          cargo ndk -t armeabi-v7a -o android/app/src/main/jniLibs build --release
+          cargo ndk -t x86_64 -o android/app/src/main/jniLibs build --release
+          cargo ndk -t x86 -o android/app/src/main/jniLibs build --release
+
+      - name: Build APK
+        env:
+          DISABLE_SVG: 1
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Get package version
+        id: version
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generate MD5 checksum
+        run: |
+          cd android/app/build/outputs/apk/release
+          md5sum *.apk > md5sum.txt
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: lx-music-rust-v${{ steps.version.outputs.PACKAGE_VERSION }}
+          path: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/apk/release/md5sum.txt
