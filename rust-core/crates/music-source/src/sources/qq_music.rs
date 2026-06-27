@@ -29,7 +29,7 @@ impl QQMusicSource {
     fn get_guid(&self) -> String {
         use rand::Rng;
         let mut rng = rand::thread_rng();
-        rng.gen_range(1000000000..9999999999).to_string()
+        rng.gen_range(1000000000_i64..9999999999_i64).to_string()
     }
 }
 
@@ -239,7 +239,7 @@ impl QQMusicSource {
             .map(|i| i as u32)
             .unwrap_or(0);
         
-        let mut quality = std::collections::HashMap::new();
+        let mut quality = std::collections::BTreeMap::new();
         quality.insert(MusicQuality::Lq, mid.to_string());
         
         // 检查可用音质

@@ -63,12 +63,15 @@ impl MusicSourceProvider for KuwoSource {
             ("rn", &limit.to_string()),
         ];
         
+        let mut headers = reqwest::header::HeaderMap::new();
+        for (k, v) in self.build_headers(&csrf) {
+            headers.insert(k, v.parse().unwrap());
+        }
+        
         let resp = self.client
             .get(&url)
             .query(&params)
-            .headers(self.build_headers(&csrf).into_iter().map(|(k, v)| {
-                (k.to_string(), v)
-            }).collect::<std::collections::HashMap<_, _>>())
+            .headers(headers)
             .send()
             .await?;
         
@@ -205,7 +208,7 @@ impl KuwoSource {
             .map(|i| (i / 1000) as u32)
             .unwrap_or(0);
         
-        let mut quality = std::collections::HashMap::new();
+        let mut quality = std::collections::BTreeMap::new();
         quality.insert(MusicQuality::Lq, id.clone());
         quality.insert(MusicQuality::Hq, id.clone());
         

@@ -1,10 +1,10 @@
 use common::Result;
-use std::io::Read;
+use symphonia::core::io::MediaSource;
 
 /// 音频解码器 trait
 pub trait AudioDecoder: Send + Sync {
     /// 打开音频源
-    fn open(&mut self, source: Box<dyn Read + Send>) -> Result<()>;
+    fn open(&mut self, source: Box<dyn MediaSource>) -> Result<()>;
     
     /// 解码下一帧
     fn decode_frame(&mut self) -> Result<Option<AudioFrame>>;
@@ -54,7 +54,7 @@ impl SymphoniaDecoder {
 }
 
 impl AudioDecoder for SymphoniaDecoder {
-    fn open(&mut self, source: Box<dyn Read + Send>) -> Result<()> {
+    fn open(&mut self, source: Box<dyn MediaSource>) -> Result<()> {
         use symphonia::core::formats::{FormatOptions, FormatReader};
         use symphonia::core::io::MediaSourceStream;
         use symphonia::core::meta::MetadataOptions;
@@ -67,7 +67,7 @@ impl AudioDecoder for SymphoniaDecoder {
         
         // 探测格式
         let probed = symphonia::default::get_probe()
-            .format(&hint, format_opts, mss, &metadata_opts)
+            .format(&hint, mss, &format_opts, &metadata_opts)
             .map_err(|e| common::Error::Player(e.to_string()))?;
         
         let format = probed.format;
@@ -148,7 +148,7 @@ impl AudioDecoder for SymphoniaDecoder {
         if let Some(format) = self.format.as_mut() {
             let time = symphonia::core::units::Time::new(
                 position as u64,
-                (position.fract() * 1_000_000_000.0) as u32,
+                (position.fract() * 1_000_000_000.0) as u32 as f64,
             );
             
             format.seek(

@@ -116,12 +116,13 @@ impl MusicSourceProvider for KugouSource {
         
         let url = "https://wwwapi.kugou.com/yy/index.php";
         
+        let mid = utils::random_string(16);
         let params = [
             ("r", "play/getdata"),
             ("hash", hash.as_str()),
             ("dfid", ""),
             ("appid", "1014"),
-            ("mid", utils::random_string(16).as_str()),
+            ("mid", mid.as_str()),
         ];
         
         let resp = self.client
@@ -239,7 +240,7 @@ impl KugouSource {
             .map(|i| i as u32)
             .unwrap_or(0);
         
-        let mut quality = std::collections::HashMap::new();
+        let mut quality = std::collections::BTreeMap::new();
         
         // 不同音质对应的 hash
         if let Some(hq_hash) = item.get("HQFileHash").and_then(|v| v.as_str()) {

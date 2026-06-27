@@ -15,8 +15,8 @@ lazy_static::lazy_static! {
 /// 初始化歌词管理器
 #[no_mangle]
 pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_initialize(
-    _env: JNIEnv,
-    _class: JClass,
+    _env: JNIEnv<'_>,
+    _class: JClass<'_>,
 ) {
     RUNTIME.block_on(async {
         // 创建事件通道
@@ -38,10 +38,10 @@ pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_initialize(
 
 /// 加载歌词
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_loadLyric(
-    mut env: JNIEnv,
-    _class: JClass,
-    lyric_info_json: JString,
+pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_loadLyric<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    lyric_info_json: JString<'local>,
 ) {
     let lyric_info: LyricInfo = match from_json(&mut env, &lyric_info_json) {
         Ok(l) => l,
@@ -59,10 +59,10 @@ pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_loadLyric(
 
 /// 获取当前歌词
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_getCurrentLyric(
-    mut env: JNIEnv,
-    _class: JClass,
-) -> JString {
+pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_getCurrentLyric<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+) -> JString<'local> {
     let lyric = RUNTIME.block_on(async {
         if let Some(ref manager) = *LYRIC_MANAGER.lock().await {
             manager.get_current_lyric().await
@@ -79,11 +79,11 @@ pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_getCurrentLyric(
 
 /// 根据时间获取当前行
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_getCurrentLine(
-    mut env: JNIEnv,
-    _class: JClass,
+pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_getCurrentLine<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
     time_ms: jni::sys::jlong,
-) -> JString {
+) -> JString<'local> {
     let line = RUNTIME.block_on(async {
         if let Some(ref manager) = *LYRIC_MANAGER.lock().await {
             manager.get_current_line(time_ms as f64).await
@@ -101,8 +101,8 @@ pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_getCurrentLine(
 /// 根据时间获取当前行索引
 #[no_mangle]
 pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_getCurrentLineIndex(
-    _env: JNIEnv,
-    _class: JClass,
+    _env: JNIEnv<'_>,
+    _class: JClass<'_>,
     time_ms: jni::sys::jlong,
 ) -> jni::sys::jint {
     RUNTIME.block_on(async {
@@ -118,11 +118,11 @@ pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_getCurrentLineIndex(
 
 /// 获取翻译
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_getTranslation(
-    mut env: JNIEnv,
-    _class: JClass,
+pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_getTranslation<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
     time_ms: jni::sys::jlong,
-) -> JString {
+) -> JString<'local> {
     let translation = RUNTIME.block_on(async {
         if let Some(ref manager) = *LYRIC_MANAGER.lock().await {
             manager.get_translation(time_ms as f64).await
@@ -139,11 +139,11 @@ pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_getTranslation(
 
 /// 获取罗马音
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_getRomaji(
-    mut env: JNIEnv,
-    _class: JClass,
+pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_getRomaji<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
     time_ms: jni::sys::jlong,
-) -> JString {
+) -> JString<'local> {
     let romaji = RUNTIME.block_on(async {
         if let Some(ref manager) = *LYRIC_MANAGER.lock().await {
             manager.get_romaji(time_ms as f64).await
@@ -161,8 +161,8 @@ pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_getRomaji(
 /// 清空歌词
 #[no_mangle]
 pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_clear(
-    _env: JNIEnv,
-    _class: JClass,
+    _env: JNIEnv<'_>,
+    _class: JClass<'_>,
 ) {
     RUNTIME.block_on(async {
         if let Some(ref manager) = *LYRIC_MANAGER.lock().await {
@@ -173,12 +173,12 @@ pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_clear(
 
 /// 解析外部歌词文件
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_parseFile(
-    mut env: JNIEnv,
-    _class: JClass,
-    content: JString,
-    format: JString,
-) -> JString {
+pub extern "C" fn Java_com_lx_music_lyric_LyricBridge_parseFile<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    content: JString<'local>,
+    format: JString<'local>,
+) -> JString<'local> {
     let content_str = match env.get_string(&content) {
         Ok(s) => s.to_string_lossy().to_string(),
         Err(_) => return to_jstring(&mut env, "{}"),

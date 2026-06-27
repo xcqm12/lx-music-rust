@@ -69,3 +69,13 @@ buck-out/
 
 # Rust
 src/rust/target/
+rust-core/target/
+rust-core/crates/jniLibs/
+rust-core/Cargo.lock
+*.so
+*.a
+
+# Build artifacts
+logs_*.zip
+日志.txt
+rust-core/cargo-check.log

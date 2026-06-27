@@ -1,6 +1,8 @@
 use common::{MusicInfo, PlayMode};
 use dashmap::DashMap;
 use parking_lot::RwLock;
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use std::sync::Arc;
 
 /// 播放列表管理器
@@ -78,8 +80,7 @@ impl PlaylistManager {
                 *self.current_index.read()
             }
             PlayMode::Random => {
-                use rand::seq::SliceRandom;
-                let mut rng = rand::thread_rng();
+                let mut rng = thread_rng();
                 let indices: Vec<usize> = (0..tracks.len()).collect();
                 *indices.choose(&mut rng).unwrap_or(&0)
             }

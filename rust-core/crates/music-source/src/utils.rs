@@ -55,6 +55,20 @@ pub fn parse_interval(interval: &str) -> u32 {
     interval.parse().unwrap_or(0)
 }
 
+/// 解析时长字符串（支持 "mm:ss" 格式）
+pub fn parse_duration(duration: &str) -> Option<u32> {
+    let parts: Vec<&str> = duration.split(':').collect();
+    match parts.len() {
+        1 => duration.parse().ok(),
+        2 => {
+            let minutes: u32 = parts[0].parse().ok()?;
+            let seconds: u32 = parts[1].parse().ok()?;
+            Some(minutes * 60 + seconds)
+        }
+        _ => None,
+    }
+}
+
 /// 生成随机字符串
 pub fn random_string(len: usize) -> String {
     use rand::Rng;

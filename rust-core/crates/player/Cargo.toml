@@ -13,6 +13,7 @@ thiserror = "1.0"
 log = "0.4"
 dashmap = "6.0"
 parking_lot = "0.12"
+rand = "0.8"
 
 cpal = "0.15"  # 跨平台音频播放
 rubato = "0.16" # 音频重采样

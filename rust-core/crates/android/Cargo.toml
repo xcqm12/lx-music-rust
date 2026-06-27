@@ -29,4 +29,7 @@ android_logger = "0.14"
 # 错误处理
 thiserror = "1.0"
 
+# Lazy static
+lazy_static = "1.4"
+
 

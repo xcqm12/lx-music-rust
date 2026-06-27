@@ -1,6 +1,3 @@
-use aes::cipher::{BlockDecrypt, BlockEncrypt, KeyInit};
-use aes::cipher::generic_array::GenericArray;
-
 /// MD5 哈希
 pub fn md5(input: &str) -> String {
     let digest = md5::compute(input.as_bytes());
@@ -12,53 +9,115 @@ pub fn md5_upper(input: &str) -> String {
     md5(input).to_uppercase()
 }
 
+/// PKCS7 填充
+fn pkcs7_pad(data: &[u8], block_size: usize) -> Vec<u8> {
+    let padding_len = block_size - (data.len() % block_size);
+    let mut padded = data.to_vec();
+    for _ in 0..padding_len {
+        padded.push(padding_len as u8);
+    }
+    padded
+}
+
+/// PKCS7 填充验证和解码
+fn pkcs7_unpad(data: &[u8]) -> Result<Vec<u8>, String> {
+    if data.is_empty() {
+        return Err("Empty data".to_string());
+    }
+    let padding_len = *data.last().unwrap() as usize;
+    if padding_len > data.len() {
+        return Err("Invalid padding".to_string());
+    }
+    Ok(data[..data.len() - padding_len].to_vec())
+}
+
 /// AES ECB 加密
 pub fn aes_ecb_encrypt(plaintext: &[u8], key: &[u8]) -> Vec<u8> {
     use aes::Aes128;
-    use aes::cipher::block_padding::Pkcs7;
+    use aes::cipher::BlockEncrypt;
+    use aes::cipher::KeyInit;
     
-    type Aes128Ecb = aes::cipher::Ecb::<Aes128, Pkcs7>;
+    let cipher = Aes128::new_from_slice(key).unwrap();
+    let padded = pkcs7_pad(plaintext, 16);
+    let mut result = Vec::new();
     
-    let cipher = Aes128Ecb::new_from_slices(key, &[]).unwrap();
-    let mut buffer = plaintext.to_vec();
-    let ciphertext = cipher.encrypt_padded_vec_mut::<Pkcs7>(&mut buffer);
-    ciphertext.to_vec()
+    for block in padded.chunks(16) {
+        let mut block_arr = [0u8; 16];
+        block_arr.copy_from_slice(block);
+        cipher.encrypt_block((&mut block_arr).into());
+        result.extend_from_slice(&block_arr);
+    }
+    
+    result
 }
 
 /// AES ECB 解密
 pub fn aes_ecb_decrypt(ciphertext: &[u8], key: &[u8]) -> Vec<u8> {
     use aes::Aes128;
-    use aes::cipher::block_padding::Pkcs7;
+    use aes::cipher::BlockDecrypt;
+    use aes::cipher::KeyInit;
     
-    type Aes128Ecb = aes::cipher::Ecb::<Aes128, Pkcs7>;
+    let cipher = Aes128::new_from_slice(key).unwrap();
+    let mut result = Vec::new();
     
-    let cipher = Aes128Ecb::new_from_slices(key, &[]).unwrap();
-    let mut buffer = ciphertext.to_vec();
-    cipher.decrypt_padded_vec_mut::<Pkcs7>(&mut buffer).unwrap_or_default()
+    for block in ciphertext.chunks(16) {
+        let mut block_arr = [0u8; 16];
+        block_arr.copy_from_slice(block);
+        cipher.decrypt_block((&mut block_arr).into());
+        result.extend_from_slice(&block_arr);
+    }
+    
+    pkcs7_unpad(&result).unwrap_or_default()
 }
 
 /// AES CBC 加密
 pub fn aes_cbc_encrypt(plaintext: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
     use aes::Aes128;
-    use aes::cipher::block_padding::Pkcs7;
+    use aes::cipher::BlockEncrypt;
+    use aes::cipher::KeyInit;
     
-    type Aes128Cbc = aes::cipher::Cbc::<Aes128, Pkcs7>;
+    let cipher = Aes128::new_from_slice(key).unwrap();
+    let padded = pkcs7_pad(plaintext, 16);
+    let mut result = Vec::new();
+    let mut prev_block = iv.to_vec();
     
-    let cipher = Aes128Cbc::new_from_slices(key, iv).unwrap();
-    let mut buffer = plaintext.to_vec();
-    cipher.encrypt_padded_vec_mut::<Pkcs7>(&mut buffer).to_vec()
+    for block in padded.chunks(16) {
+        let mut block_arr = [0u8; 16];
+        // XOR with previous ciphertext block
+        for (i, b) in block.iter().enumerate() {
+            block_arr[i] = b ^ prev_block[i];
+        }
+        cipher.encrypt_block((&mut block_arr).into());
+        result.extend_from_slice(&block_arr);
+        prev_block = block_arr.to_vec();
+    }
+    
+    result
 }
 
 /// AES CBC 解密
 pub fn aes_cbc_decrypt(ciphertext: &[u8], key: &[u8], iv: &[u8]) -> Vec<u8> {
     use aes::Aes128;
-    use aes::cipher::block_padding::Pkcs7;
+    use aes::cipher::BlockDecrypt;
+    use aes::cipher::KeyInit;
     
-    type Aes128Cbc = aes::cipher::Cbc::<Aes128, Pkcs7>;
+    let cipher = Aes128::new_from_slice(key).unwrap();
+    let mut result = Vec::new();
+    let mut prev_block = iv.to_vec();
     
-    let cipher = Aes128Cbc::new_from_slices(key, iv).unwrap();
-    let mut buffer = ciphertext.to_vec();
-    cipher.decrypt_padded_vec_mut::<Pkcs7>(&mut buffer).unwrap_or_default()
+    for block in ciphertext.chunks(16) {
+        let mut block_arr = [0u8; 16];
+        block_arr.copy_from_slice(block);
+        cipher.decrypt_block((&mut block_arr).into());
+        // XOR with previous ciphertext block
+        for (i, b) in block_arr.iter_mut().enumerate() {
+            *b ^= prev_block[i];
+        }
+        result.extend_from_slice(&block_arr);
+        prev_block = block.to_vec();
+    }
+    
+    pkcs7_unpad(&result).unwrap_or_default()
 }
 
 /// RSA 加密（网易风格）

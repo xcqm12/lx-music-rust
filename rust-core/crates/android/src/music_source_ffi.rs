@@ -15,8 +15,8 @@ lazy_static::lazy_static! {
 /// 初始化音乐源管理器
 #[no_mangle]
 pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_initialize(
-    _env: JNIEnv,
-    _class: JClass,
+    _env: JNIEnv<'_>,
+    _class: JClass<'_>,
 ) {
     RUNTIME.block_on(async {
         let manager = Arc::new(MusicSourceManager::new());
@@ -27,14 +27,14 @@ pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_initialize(
 
 /// 搜索音乐
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_search(
-    mut env: JNIEnv,
-    _class: JClass,
-    source_id: JString,
-    keyword: JString,
+pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_search<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    source_id: JString<'local>,
+    keyword: JString<'local>,
     page: jni::sys::jint,
     limit: jni::sys::jint,
-) -> JString {
+) -> JString<'local> {
     let source_str = match env.get_string(&source_id) {
         Ok(s) => s.to_string_lossy().to_string(),
         Err(_) => return to_jstring(&mut env, "[]"),
@@ -69,12 +69,12 @@ pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_search(
 
 /// 获取音乐 URL
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_getMusicUrl(
-    mut env: JNIEnv,
-    _class: JClass,
-    music_info_json: JString,
-    quality_json: JString,
-) -> JString {
+pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_getMusicUrl<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    music_info_json: JString<'local>,
+    quality_json: JString<'local>,
+) -> JString<'local> {
     let music_info: MusicInfo = match from_json(&mut env, &music_info_json) {
         Ok(m) => m,
         Err(_) => return to_jstring(&mut env, ""),
@@ -104,11 +104,11 @@ pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_getMusicUrl(
 
 /// 获取歌词
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_getLyric(
-    mut env: JNIEnv,
-    _class: JClass,
-    music_info_json: JString,
-) -> JString {
+pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_getLyric<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    music_info_json: JString<'local>,
+) -> JString<'local> {
     let music_info: MusicInfo = match from_json(&mut env, &music_info_json) {
         Ok(m) => m,
         Err(_) => return to_jstring(&mut env, "{}"),
@@ -143,11 +143,11 @@ pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_getLyric(
 
 /// 跨源查找音乐
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_findMusicCrossSource(
-    mut env: JNIEnv,
-    _class: JClass,
-    music_info_json: JString,
-) -> JString {
+pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_findMusicCrossSource<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    music_info_json: JString<'local>,
+) -> JString<'local> {
     let music_info: MusicInfo = match from_json(&mut env, &music_info_json) {
         Ok(m) => m,
         Err(_) => return to_jstring(&mut env, "[]"),
@@ -172,10 +172,10 @@ pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_findMusicCross
 
 /// 获取可用音乐源
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_getAvailableSources(
-    mut env: JNIEnv,
-    _class: JClass,
-) -> JString {
+pub extern "C" fn Java_com_lx_music_musicsource_MusicSourceBridge_getAvailableSources<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+) -> JString<'local> {
     let sources: Vec<String> = vec![
         "kw".to_string(), // 酷我
         "kg".to_string(), // 酷狗

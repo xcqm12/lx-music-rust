@@ -60,11 +60,14 @@ impl NeteaseSource {
         
         let encrypted = self.encrypt_data(&data.to_string())?;
         
+        let mut headers = reqwest::header::HeaderMap::new();
+        for (k, v) in self.build_headers() {
+            headers.insert(k, v.parse().unwrap());
+        }
+        
         let resp = self.client
             .post(&url)
-            .headers(self.build_headers().into_iter().map(|(k, v)| {
-                (k.to_string(), v)
-            }).collect::<std::collections::HashMap<_, _>>())
+            .headers(headers)
             .form(&encrypted)
             .send()
             .await?;
@@ -228,7 +231,7 @@ impl NeteaseSource {
             .map(|d| (d / 1000) as u32)
             .unwrap_or(0);
         
-        let mut quality = std::collections::HashMap::new();
+        let mut quality = std::collections::BTreeMap::new();
         quality.insert(MusicQuality::Lq, id.clone());
         
         // 检查音质

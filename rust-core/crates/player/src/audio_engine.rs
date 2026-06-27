@@ -1,5 +1,4 @@
 use common::Result;
-use std::sync::Arc;
 use tokio::sync::mpsc;
 
 /// 音频引擎
@@ -107,7 +106,9 @@ impl AudioEngine {
 
 /// 音频缓冲管理器
 pub struct AudioBuffer {
-    buffer: ringbuf::HeapRb<f32>,
+    data: Vec<f32>,
+    write_pos: usize,
+    read_pos: usize,
     total_samples: usize,
     sample_rate: u32,
 }
@@ -115,7 +116,9 @@ pub struct AudioBuffer {
 impl AudioBuffer {
     pub fn new(capacity: usize, sample_rate: u32) -> Self {
         Self {
-            buffer: ringbuf::HeapRb::new(capacity),
+            data: vec![0.0; capacity],
+            write_pos: 0,
+            read_pos: 0,
             total_samples: 0,
             sample_rate,
         }
@@ -124,31 +127,50 @@ impl AudioBuffer {
     /// 写入音频数据
     pub fn write(&mut self, data: &[f32]) {
         for &sample in data {
-            let _ = self.buffer.push(sample);
+            if self.write_pos < self.data.len() {
+                self.data[self.write_pos] = sample;
+                self.write_pos += 1;
+            }
         }
         self.total_samples += data.len();
     }
     
     /// 读取音频数据
     pub fn read(&mut self, buf: &mut [f32]) -> usize {
-        self.buffer.pop_slice(buf)
+        let mut count = 0;
+        for item in buf.iter_mut() {
+            if self.read_pos < self.write_pos {
+                *item = self.data[self.read_pos];
+                self.read_pos += 1;
+                count += 1;
+            } else {
+                *item = 0.0;
+            }
+        }
+        count
     }
     
     /// 获取当前位置（秒）
     pub fn position(&self) -> f64 {
         let channels = 2u32;
-        let played_samples = self.total_samples - self.buffer.len();
+        let played_samples = self.read_pos;
         played_samples as f64 / (self.sample_rate * channels) as f64
     }
     
     /// 清空缓冲区
     pub fn clear(&mut self) {
-        self.buffer.clear();
+        self.write_pos = 0;
+        self.read_pos = 0;
         self.total_samples = 0;
     }
     
     /// 获取缓冲长度
     pub fn len(&self) -> usize {
-        self.buffer.len()
+        self.write_pos - self.read_pos
+    }
+    
+    /// 是否为空
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }

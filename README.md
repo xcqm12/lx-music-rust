@@ -137,15 +137,14 @@ npm install
 # 2. 设置 NDK 环境变量
 $env:ANDROID_NDK_HOME = "$env:LOCALAPPDATA\Android\Sdk\ndk\<version>"
 
-# 3. 构建 Rust 核心 (.so)
-# 注意：需要在 crates/android 目录下执行构建命令
+# 3. 构建 Rust 核心 (.so) - 推荐：一次性构建所有架构
 cd rust-core/crates/android
-cargo ndk -t arm64-v8a -o "../../../android/app/src/main/jniLibs" build --release
-cargo ndk -t armeabi-v7a -o "../../../android/app/src/main/jniLibs" build --release
-cargo ndk -t x86_64 -o "../../../android/app/src/main/jniLibs" build --release
-cargo ndk -t x86 -o "../../../android/app/src/main/jniLibs" build --release
+cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -t x86 -o ../jniLibs build --release
 
-# 4. 构建 Android APK
+# 4. 复制 JNI 库到 Android 项目
+Copy-Item -Recurse -Force "../jniLibs/*" "../../../android/app/src/main/jniLibs/"
+
+# 5. 构建 Android APK
 cd ../../../android
 .\gradlew.bat assembleRelease --no-daemon
 ```
@@ -159,14 +158,14 @@ npm install
 # 2. 设置 NDK 环境变量
 export ANDROID_NDK_HOME=$HOME/Android/Sdk/ndk/<version>
 
-# 3. 构建 Rust 核心 (.so)
+# 3. 构建 Rust 核心 (.so) - 推荐：一次性构建所有架构
 cd rust-core/crates/android
-cargo ndk -t arm64-v8a -o "../../../android/app/src/main/jniLibs" build --release
-cargo ndk -t armeabi-v7a -o "../../../android/app/src/main/jniLibs" build --release
-cargo ndk -t x86_64 -o "../../../android/app/src/main/jniLibs" build --release
-cargo ndk -t x86 -o "../../../android/app/src/main/jniLibs" build --release
+cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -t x86 -o ../jniLibs build --release
 
-# 4. 构建 Android APK
+# 4. 复制 JNI 库到 Android 项目
+cp -r ../jniLibs/* ../../../android/app/src/main/jniLibs/
+
+# 5. 构建 Android APK
 cd ../../../android
 ./gradlew assembleRelease --no-daemon
 ```

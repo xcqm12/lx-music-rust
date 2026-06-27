@@ -1,5 +1,4 @@
 pub mod sources;
-pub mod search;
 pub mod crypto;
 pub mod utils;
 
@@ -92,9 +91,9 @@ impl MusicSourceManager {
     /// 获取音乐源
     pub fn get_source(
         &self,
-        source_id: MusicSource,
+        source_id: &MusicSource,
     ) -> Option<Arc<dyn MusicSourceProvider>> {
-        self.sources.get(&source_id).map(|s| Arc::clone(&*s))
+        self.sources.get(source_id).map(|s| Arc::clone(&*s))
     }
     
     /// 获取所有可用源
@@ -113,7 +112,7 @@ impl MusicSourceManager {
         page: u32,
         limit: u32,
     ) -> Result<Vec<MusicInfo>> {
-        let source = self.get_source(source_id)
+        let source = self.get_source(&source_id)
             .ok_or_else(|| common::Error::SourceNotFound(format!("{:?}", source_id)))?;
         
         source.search(keyword, page, limit).await
@@ -129,7 +128,7 @@ impl MusicSourceManager {
         let mut results = Vec::new();
         
         for entry in self.sources.iter() {
-            let source_id = *entry.key();
+            let source_id = entry.key().clone();
             let source = Arc::clone(&*entry.value());
             
             let result = source.search(keyword, page, limit).await;
@@ -145,7 +144,7 @@ impl MusicSourceManager {
         music_info: &MusicInfo,
         quality: MusicQuality,
     ) -> Result<String> {
-        let source = self.get_source(music_info.source.clone())
+        let source = self.get_source(&music_info.source)
             .ok_or_else(|| common::Error::SourceNotFound(format!("{:?}", music_info.source)))?;
         
         source.get_music_url(music_info, quality).await
@@ -156,7 +155,7 @@ impl MusicSourceManager {
         &self,
         music_info: &MusicInfo,
     ) -> Result<common::LyricInfo> {
-        let source = self.get_source(music_info.source.clone())
+        let source = self.get_source(&music_info.source)
             .ok_or_else(|| common::Error::SourceNotFound(format!("{:?}", music_info.source)))?;
         
         source.get_lyric(music_info).await

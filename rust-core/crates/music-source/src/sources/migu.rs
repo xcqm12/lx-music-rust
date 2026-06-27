@@ -19,7 +19,7 @@ impl MiguSource {
     
     /// 获取 Token
     async fn get_token(&self) -> Result<String> {
-        let url = "https://m.music.migu.cn/migu/remoting/cms_tag_tag&quot;;
+        let url = "https://m.music.migu.cn/migu/remoting/cms_tag_tag";
         let resp = self.client.get(url).send().await?;
         
         // 从响应中提取 token
@@ -72,12 +72,15 @@ impl MusicSourceProvider for MiguSource {
             ("rows", &limit.to_string()),
         ];
         
+        let mut headers = reqwest::header::HeaderMap::new();
+        for (k, v) in self.build_headers() {
+            headers.insert(k, v.parse().unwrap());
+        }
+        
         let resp = self.client
             .get(url)
             .query(&params)
-            .headers(self.build_headers().into_iter().map(|(k, v)| {
-                (k.to_string(), v)
-            }).collect::<std::collections::HashMap<_, _>>())
+            .headers(headers)
             .send()
             .await?;
         
@@ -212,11 +215,11 @@ impl MiguSource {
         
         let interval = item.get("length")
             .and_then(|v| v.as_str())
-            .and_then(|s| utils::parse_duration(s).ok())
+            .and_then(|s| utils::parse_duration(s))
             .or_else(|| item.get("duration").and_then(|v| v.as_u64()).map(|d| (d / 1000) as u32))
             .unwrap_or(0);
         
-        let mut quality = std::collections::HashMap::new();
+        let mut quality = std::collections::BTreeMap::new();
         quality.insert(MusicQuality::Lq, id.clone());
         
         // 根据 available 判断音质

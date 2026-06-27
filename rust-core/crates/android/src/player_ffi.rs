@@ -14,10 +14,10 @@ lazy_static::lazy_static! {
 
 /// 初始化播放器
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_player_PlayerBridge_initialize(
-    mut env: JNIEnv,
-    _class: JClass,
-    config_json: JString,
+pub extern "C" fn Java_com_lx_music_player_PlayerBridge_initialize<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    config_json: JString<'local>,
 ) {
     let config: PlayerConfig = match from_json(&mut env, &config_json) {
         Ok(c) => c,
@@ -41,8 +41,8 @@ pub extern "C" fn Java_com_lx_music_player_PlayerBridge_initialize(
 /// 播放
 #[no_mangle]
 pub extern "C" fn Java_com_lx_music_player_PlayerBridge_play(
-    _env: JNIEnv,
-    _class: JClass,
+    _env: JNIEnv<'_>,
+    _class: JClass<'_>,
 ) {
     RUNTIME.block_on(async {
         if let Some(ref player) = *PLAYER.lock().await {
@@ -56,8 +56,8 @@ pub extern "C" fn Java_com_lx_music_player_PlayerBridge_play(
 /// 暂停
 #[no_mangle]
 pub extern "C" fn Java_com_lx_music_player_PlayerBridge_pause(
-    _env: JNIEnv,
-    _class: JClass,
+    _env: JNIEnv<'_>,
+    _class: JClass<'_>,
 ) {
     RUNTIME.block_on(async {
         if let Some(ref player) = *PLAYER.lock().await {
@@ -71,8 +71,8 @@ pub extern "C" fn Java_com_lx_music_player_PlayerBridge_pause(
 /// 停止
 #[no_mangle]
 pub extern "C" fn Java_com_lx_music_player_PlayerBridge_stop(
-    _env: JNIEnv,
-    _class: JClass,
+    _env: JNIEnv<'_>,
+    _class: JClass<'_>,
 ) {
     RUNTIME.block_on(async {
         if let Some(ref player) = *PLAYER.lock().await {
@@ -86,8 +86,8 @@ pub extern "C" fn Java_com_lx_music_player_PlayerBridge_stop(
 /// 跳转到指定位置
 #[no_mangle]
 pub extern "C" fn Java_com_lx_music_player_PlayerBridge_seek(
-    _env: JNIEnv,
-    _class: JClass,
+    _env: JNIEnv<'_>,
+    _class: JClass<'_>,
     position_ms: jni::sys::jlong,
 ) {
     let position = position_ms as f64 / 1000.0;
@@ -104,8 +104,8 @@ pub extern "C" fn Java_com_lx_music_player_PlayerBridge_seek(
 /// 设置音量
 #[no_mangle]
 pub extern "C" fn Java_com_lx_music_player_PlayerBridge_setVolume(
-    _env: JNIEnv,
-    _class: JClass,
+    _env: JNIEnv<'_>,
+    _class: JClass<'_>,
     volume: jni::sys::jfloat,
 ) {
     RUNTIME.block_on(async {
@@ -120,8 +120,8 @@ pub extern "C" fn Java_com_lx_music_player_PlayerBridge_setVolume(
 /// 获取音量
 #[no_mangle]
 pub extern "C" fn Java_com_lx_music_player_PlayerBridge_getVolume(
-    _env: JNIEnv,
-    _class: JClass,
+    _env: JNIEnv<'_>,
+    _class: JClass<'_>,
 ) -> jni::sys::jfloat {
     RUNTIME.block_on(async {
         if let Some(ref player) = *PLAYER.lock().await {
@@ -134,10 +134,10 @@ pub extern "C" fn Java_com_lx_music_player_PlayerBridge_getVolume(
 
 /// 设置播放模式
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_player_PlayerBridge_setPlayMode(
-    mut env: JNIEnv,
-    _class: JClass,
-    mode_json: JString,
+pub extern "C" fn Java_com_lx_music_player_PlayerBridge_setPlayMode<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    mode_json: JString<'local>,
 ) {
     let mode: PlayMode = match from_json(&mut env, &mode_json) {
         Ok(m) => m,
@@ -155,10 +155,10 @@ pub extern "C" fn Java_com_lx_music_player_PlayerBridge_setPlayMode(
 
 /// 播放指定歌曲
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_player_PlayerBridge_playTrack(
-    mut env: JNIEnv,
-    _class: JClass,
-    music_info_json: JString,
+pub extern "C" fn Java_com_lx_music_player_PlayerBridge_playTrack<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    music_info_json: JString<'local>,
 ) {
     let music_info: MusicInfo = match from_json(&mut env, &music_info_json) {
         Ok(m) => m,
@@ -180,8 +180,8 @@ pub extern "C" fn Java_com_lx_music_player_PlayerBridge_playTrack(
 /// 下一首
 #[no_mangle]
 pub extern "C" fn Java_com_lx_music_player_PlayerBridge_next(
-    _env: JNIEnv,
-    _class: JClass,
+    _env: JNIEnv<'_>,
+    _class: JClass<'_>,
 ) {
     RUNTIME.block_on(async {
         if let Some(ref player) = *PLAYER.lock().await {
@@ -195,8 +195,8 @@ pub extern "C" fn Java_com_lx_music_player_PlayerBridge_next(
 /// 上一首
 #[no_mangle]
 pub extern "C" fn Java_com_lx_music_player_PlayerBridge_previous(
-    _env: JNIEnv,
-    _class: JClass,
+    _env: JNIEnv<'_>,
+    _class: JClass<'_>,
 ) {
     RUNTIME.block_on(async {
         if let Some(ref player) = *PLAYER.lock().await {
@@ -209,10 +209,10 @@ pub extern "C" fn Java_com_lx_music_player_PlayerBridge_previous(
 
 /// 添加到播放列表
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_player_PlayerBridge_addToPlaylist(
-    mut env: JNIEnv,
-    _class: JClass,
-    music_info_json: JString,
+pub extern "C" fn Java_com_lx_music_player_PlayerBridge_addToPlaylist<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    music_info_json: JString<'local>,
 ) {
     let music_info: MusicInfo = match from_json(&mut env, &music_info_json) {
         Ok(m) => m,
@@ -228,10 +228,10 @@ pub extern "C" fn Java_com_lx_music_player_PlayerBridge_addToPlaylist(
 
 /// 获取播放状态
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_player_PlayerBridge_getState(
-    mut env: JNIEnv,
-    _class: JClass,
-) -> JString {
+pub extern "C" fn Java_com_lx_music_player_PlayerBridge_getState<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+) -> JString<'local> {
     let state = RUNTIME.block_on(async {
         if let Some(ref player) = *PLAYER.lock().await {
             player.get_state().await
@@ -245,10 +245,10 @@ pub extern "C" fn Java_com_lx_music_player_PlayerBridge_getState(
 
 /// 获取播放进度
 #[no_mangle]
-pub extern "C" fn Java_com_lx_music_player_PlayerBridge_getProgress(
-    mut env: JNIEnv,
-    _class: JClass,
-) -> JString {
+pub extern "C" fn Java_com_lx_music_player_PlayerBridge_getProgress<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+) -> JString<'local> {
     let progress = RUNTIME.block_on(async {
         if let Some(ref player) = *PLAYER.lock().await {
             player.get_progress().await
