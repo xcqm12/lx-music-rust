@@ -3,12 +3,13 @@ pub mod search;
 pub mod crypto;
 pub mod utils;
 
+use async_trait::async_trait;
 use common::{MusicInfo, MusicQuality, MusicSource, Result};
 use reqwest::Client;
 use std::sync::Arc;
 
 /// 音乐源接口 trait
-#[async_trait::async_trait]
+#[async_trait]
 pub trait MusicSourceProvider: Send + Sync {
     /// 获取源名称
     fn name(&self) -> &str;
