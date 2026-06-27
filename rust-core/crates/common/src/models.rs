@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// 音乐信息
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MusicInfo {
     pub id: String,
     pub name: String,
@@ -10,7 +10,7 @@ pub struct MusicInfo {
     pub album_name: String,
     pub interval: u32, // 时长（秒）
     pub source: MusicSource,
-    pub quality: HashMap<MusicQuality, String>, // 音质 -> ID/Hash
+    pub quality: BTreeMap<MusicQuality, String>, // 音质 -> ID/Hash (使用 BTreeMap 以支持 Hash)
     pub pic_url: Option<String>,
 }
 

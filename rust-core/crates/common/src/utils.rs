@@ -1,5 +1,4 @@
 use base64::{Engine as _, engine::general_purpose};
-use md5::{Md5, Digest};
 
 /// Base64 编码
 pub fn base64_encode(input: &[u8]) -> String {
@@ -14,9 +13,8 @@ pub fn base64_decode(input: &str) -> crate::Result<Vec<u8>> {
 
 /// MD5 哈希
 pub fn md5_hash(input: &str) -> String {
-    let mut hasher = Md5::new();
-    hasher.update(input.as_bytes());
-    format!("{:x}", hasher.finalize())
+    let digest = md5::compute(input.as_bytes());
+    format!("{:x}", digest)
 }
 
 /// 生成随机字符串
