@@ -51,6 +51,7 @@
 - **播放引擎**：音频引擎、解码器、播放列表管理迁移至 Rust（`player` crate），使用 Symphonia 进行音频解码
 - **加密解密**：AES、HMAC、SHA2 等加密算法使用 Rust 原生实现，替代 JS 加密库
 - **JNI 桥接**：通过 Rust FFI 与 Android Kotlin 层交互，使用 TurboModule 暴露接口给 React Native
+- **安全文本**：SafeText 组件强制字符串化文本内容，规避 RN Text 组件校验报错
 
 ### Rust 核心模块
 
