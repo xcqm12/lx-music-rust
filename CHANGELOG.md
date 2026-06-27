@@ -3,8 +3,27 @@
 All notable changes to this project will be documented in this file.
 
 Project versioning adheres to [Semantic Versioning](http://semver.org/).
-Commit convention is based on [Conventional Commits](http://conventionalcommits.org).
+Commit convention is based on [Conventional Commits](http://conventionalcommits.org/).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
+
+## [1.8.5](https://github.com/xcqm12/lx-music-rust/compare/v1.8.4...v1.8.5) - 2026-06-28
+
+Rust 核心模块重大更新，修复多个编译错误并完成多架构支持。
+
+### 修复
+
+- **AES 加密模块**：重写 crypto.rs，使用纯 `aes` crate 实现 ECB/CBC 加密解密，移除 `block-modes` 依赖并修复 PKCS7 填充逻辑
+- **JNI 生命周期**：为所有 JNI FFI 函数添加 `'local` 生命周期注解，修复 `JNIEnv` 和 `JString` 类型错误
+- **音频缓冲区**：将 `ringbuf` 替换为 Vec 实现，修复 Consumer trait 相关编译错误
+- **播放器模块**：修复 `playlist.rs` 中 `choose` 方法调用，添加 `rand` 依赖
+- **QQ 音乐源**：修复 GUID 生成中整数溢出问题，使用 i64 类型后缀
+- **歌词 FFI**：修复 `to_jstring` 和 `from_json` 函数的生命周期注解
+
+### 构建
+
+- 完成 arm64-v8a、armeabi-v7a、x86_64、x86 四架构 Rust 库编译
+- 更新 README.md 构建指南，简化 `cargo ndk` 命令为一次性构建所有架构
+- 更新 .gitignore，排除 Rust 编译产物
 
 ## [1.8.4](https://github.com/lyswhut/lx-music-mobile/compare/v1.8.3...v1.8.4) - 2026-05-01
 
