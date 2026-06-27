@@ -7,7 +7,6 @@ use tokio::sync::mpsc;
 pub struct AdvancedLyricManager {
     manager: LyricManager,
     sync: LyricSync,
-    event_receiver: mpsc::Receiver<LyricEvent>,
 }
 
 impl AdvancedLyricManager {
@@ -20,7 +19,6 @@ impl AdvancedLyricManager {
         (Self {
             manager,
             sync,
-            event_receiver,
         }, event_receiver)
     }
     

@@ -187,11 +187,14 @@ impl LyricParser {
                     
                     text = self.word_time_regex.replace_all(text_part, "").to_string();
                     
+                    // 在移动前检查是否有逐字时间
+                    let has_word_timing = !words.is_empty();
+                    
                     lyric.lines.push(LyricLine::new(start_time, text)
                         .with_duration(duration)
                         .with_words(words));
                     
-                    lyric.has_word_timing = !words.is_empty();
+                    lyric.has_word_timing = has_word_timing;
                 }
             }
         }
