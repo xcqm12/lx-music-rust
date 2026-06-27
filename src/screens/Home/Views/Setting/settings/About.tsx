@@ -22,11 +22,14 @@ export default memo(() => {
   const openHomePage = () => {
     void openUrl('https://github.com/lyswhut/lx-music-mobile#readme')
   }
+  const openRustHomePage = () => {
+    void openUrl('https://github.com/xcqm12/lx-music-rust#readme')
+  }
   const openIssuePage = () => {
-    void openUrl('https://github.com/lyswhut/lx-music-mobile/issues?q=is%3Aissue+')
+    void openUrl('https://github.com/xcqm12/lx-music-rust/issues?q=is%3Aissue+')
   }
   const openGHReleasePage = () => {
-    void openUrl('https://github.com/lyswhut/lx-music-mobile/releases')
+    void openUrl('https://github.com/xcqm12/lx-music-rust/releases')
   }
   const openFAQPage = () => {
     void openUrl('https://lyswhut.github.io/lx-music-doc/mobile/faq')
@@ -63,9 +66,15 @@ export default memo(() => {
   return (
     <Section title={t('setting_about')}>
       <View style={styles.part}>
-        <Text style={styles.text} >本软件完全免费，代码已开源。开源地址：</Text>
+        <Text style={styles.text} >本项目基于<Text style={styles.boldText}>落雪无痕</Text>开发的 LX Music 移动版进行 Rust 核心重写，感谢原作者的开源贡献。</Text>
         <TouchableOpacity onPress={openHomePage}>
-          <Text style={textLinkStyle}>https://github.com/lyswhut/lx-music-mobile</Text>
+          <Text style={textLinkStyle}>原项目地址</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.part}>
+        <Text style={styles.text} >本软件完全免费，代码已开源。开源地址：</Text>
+        <TouchableOpacity onPress={openRustHomePage}>
+          <Text style={textLinkStyle}>https://github.com/xcqm12/lx-music-rust</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.part}>
@@ -112,6 +121,8 @@ export default memo(() => {
       </View>
       <View style={styles.part}>
         <Text style={styles.text}>By: </Text>
+        <Text style={styles.text}>SevenZeroMeow</Text>
+        <Text style={styles.text}> | 原项目 By: </Text>
         <Text style={styles.text}>落雪无痕</Text>
       </View>
     </Section>
