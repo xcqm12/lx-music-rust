@@ -61,11 +61,11 @@ jobs:
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: |
-          cd rust-core
-          cargo ndk -p lx-music-android -t arm64-v8a -o "../android/app/src/main/jniLibs" build --release
-          cargo ndk -p lx-music-android -t armeabi-v7a -o "../android/app/src/main/jniLibs" build --release
-          cargo ndk -p lx-music-android -t x86_64 -o "../android/app/src/main/jniLibs" build --release
-          cargo ndk -p lx-music-android -t x86 -o "../android/app/src/main/jniLibs" build --release
+          cd rust-core/crates/android
+          cargo ndk -t arm64-v8a -o "../../../android/app/src/main/jniLibs" build --release
+          cargo ndk -t armeabi-v7a -o "../../../android/app/src/main/jniLibs" build --release
+          cargo ndk -t x86_64 -o "../../../android/app/src/main/jniLibs" build --release
+          cargo ndk -t x86 -o "../../../android/app/src/main/jniLibs" build --release
 
       - name: Build APK
         env:
