@@ -16,11 +16,15 @@
 
 该项目是 [LX Music 移动版](https://github.com/lyswhut/lx-music-mobile) 的 Rust 重写版本，将核心音乐源解析、歌词处理、播放器等功能迁移至 Rust 实现。
 
-所用技术栈：
+### 技术栈
 
-- React Native（UI 层）
-- Rust（核心业务层：音乐源、歌词、播放器）
-- Redux（状态管理）
+| 层级 | 技术 |
+|------|------|
+| UI | React Native 0.73 + TypeScript |
+| 桥接 | TurboModule (RN 0.68+) |
+| JNI | Kotlin → Rust FFI |
+| 核心 | Rust (serde, reqwest, aes, hmac, Symphonia) |
+| 构建 | Gradle 8.8 + CMake 3.18.1 + NDK 26 |
 
 已支持的平台：
 
@@ -44,7 +48,7 @@
 
 - **音乐源解析**：酷我、酷狗、咪咕等音乐源解析逻辑由 JS 重写为 Rust（`music-source` crate），提升解析效率
 - **歌词处理**：LRC/KRC 歌词解析、时间轴同步逻辑迁移至 Rust（`lyric` crate）
-- **播放引擎**：音频引擎、解码器、播放列表管理迁移至 Rust（`player` crate）
+- **播放引擎**：音频引擎、解码器、播放列表管理迁移至 Rust（`player` crate），使用 Symphonia 进行音频解码
 - **加密解密**：AES、HMAC、SHA2 等加密算法使用 Rust 原生实现，替代 JS 加密库
 - **JNI 桥接**：通过 Rust FFI 与 Android Kotlin 层交互，使用 TurboModule 暴露接口给 React Native
 
@@ -55,9 +59,104 @@ rust-core/
 ├── crates/
 │   ├── common/        # 公共类型、错误处理、工具函数
 │   ├── lyric/         # 歌词解析、同步管理
-│   ├── music-source/  # 音乐源（酷我、酷狗、咪咕等）
+│   ├── music-source/  # 音乐源（酷我、酷狗、咪咕、QQ、网易）
 │   ├── player/        # 音频引擎、解码器、播放列表
 │   └── android/       # Android JNI 绑定
+```
+
+### 架构设计
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     React Native (TypeScript/TSX)            │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐ │
+│  │   UI     │  │  Player  │  │  Source  │  │    Lyric     │ │
+│  │ Screens  │  │  Plugin   │  │  Plugin  │  │   Plugin     │ │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └──────┬───────┘ │
+│       │             │             │               │         │
+│       └─────────────┴─────────────┴───────────────┘         │
+│                       │                                      │
+│              TurboModule (React Native)                     │
+│              LXMusicCoreModule.kt                           │
+└───────────────────────┬─────────────────────────────────────┘
+                        │
+┌───────────────────────┼─────────────────────────────────────┐
+│              Android (Kotlin/Java)                           │
+│                   RustBridge.kt                              │
+│              (JNI 静态方法声明)                                │
+└───────────────────────┬─────────────────────────────────────┘
+                        │  JNI
+┌───────────────────────┼─────────────────────────────────────┐
+│                  Rust Core (liblx_music_core.so)             │
+│  ┌────────────────────┼───────────────────────────────────┐ │
+│  │              player.rs                                 │ │
+│  │  ┌─────────────────┼────────────────────────────────┐ │ │
+│  │  │  Audio Engine   │  Playlist    │  State Manager  │ │ │
+│  │  └─────────────────┴────────────────────────────────┘ │ │
+│  └────────────────────────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │              music_source.rs                            │ │
+│  │  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌───────┐ │ │
+│  │  │  Kw    │ │  Kg    │ │  Tx    │ │  Wy    │ │  Mg   │ │ │
+│  │  │(酷我)  │ │(酷狗)  │ │(QQ)   │ │(网易)  │ │(咪咕) │ │ │
+│  │  └────────┘ └────────┘ └────────┘ └────────┘ └───────┘ │ │
+│  └────────────────────────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │              lyric.rs                                   │ │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────────────────────┐│ │
+│  │  │  Parser  │ │   Sync   │ │        Manager           ││ │
+│  │  │(LRC/KRC) │ │(Timing)  │ │    (Cache/Events)        ││ │
+│  │  └──────────┘ └──────────┘ └──────────────────────────┘│ │
+│  └────────────────────────────────────────────────────────┘ │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │              Shared Utilities                           │ │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────┐ │ │
+│  │  │http_utils│ │crypto_utils│ │js_engine │ │jni_bridge │ │ │
+│  │  └──────────┘ └──────────┘ └──────────┘ └───────────┘ │ │
+│  └────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 构建指南
+
+#### 环境准备
+
+- **Node.js** >= 18, **npm** >= 8.5.2
+- **Rust** (stable) + Android targets (`aarch64-linux-android`, `armv7-linux-androideabi`, `x86_64-linux-android`)
+- **Android Studio** + SDK 34 + NDK 26+
+- **CMake** 3.18+
+
+#### 构建步骤
+
+**Windows (PowerShell):**
+
+```powershell
+# 1. 安装依赖
+npm install
+
+# 2. 设置 NDK 环境变量
+$env:ANDROID_NDK_HOME = "$env:LOCALAPPDATA\Android\Sdk\ndk\<version>"
+
+# 3. 构建 Rust 核心 (.so)
+cd rust-core
+cargo ndk -t arm64-v8a -o "../android/app/src/main/jniLibs" build --release
+
+# 4. 构建 Android APK
+cd ../android
+.\gradlew.bat assembleRelease --no-daemon
+```
+
+#### 调试运行
+
+```bash
+# 启动 Metro 开发服务器
+npm start
+
+# 安装并运行到设备
+npx react-native run-android --active-arch-only
+
+# 打开调试菜单
+adb shell input keyevent 82
 ```
 
 ### 数据同步服务

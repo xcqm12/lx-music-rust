@@ -12,7 +12,7 @@ export default ({ autoUpdate }: { autoUpdate: boolean }) => {
 
   const status = isPlay ? text : statusText
 
-  return <Text numberOfLines={1} size={12}>{status}</Text>
+  return <Text numberOfLines={1} size={12}>{String(status ?? '')}</Text>
 }
 
 // const styles = createStyle({
