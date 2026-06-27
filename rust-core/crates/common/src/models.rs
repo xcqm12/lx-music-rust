@@ -56,7 +56,7 @@ impl TryFrom<&str> for MusicSource {
 }
 
 /// 音质类型
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, Ord, PartialOrd)]
 #[serde(rename_all = "snake_case")]
 pub enum MusicQuality {
     Lq,   // 低质量 (128k)
