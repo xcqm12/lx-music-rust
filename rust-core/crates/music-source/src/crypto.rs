@@ -3,10 +3,8 @@ use aes::cipher::generic_array::GenericArray;
 
 /// MD5 哈希
 pub fn md5(input: &str) -> String {
-    use md5::{Md5, Digest};
-    let mut hasher = Md5::new();
-    hasher.update(input.as_bytes());
-    format!("{:x}", hasher.finalize())
+    let digest = md5::compute(input.as_bytes());
+    format!("{:x}", digest)
 }
 
 /// MD5 哈希（大写）
