@@ -38,6 +38,16 @@
 
 为了提高使用门槛，本软件内的默认设置、UI 操作不以新手友好为目标，所以使用前建议先根据你的喜好浏览调整一遍软件设置，阅读一遍[音乐播放列表机制](https://lyswhut.github.io/lx-music-doc/mobile/faq/playlist)。
 
+### 更新说明
+
+本项目在保留原 LX Music Mobile React Native UI 层的基础上，将核心业务逻辑迁移至 Rust 实现，主要变更：
+
+- **音乐源解析**：酷我、酷狗、咪咕等音乐源解析逻辑由 JS 重写为 Rust（`music-source` crate），提升解析效率
+- **歌词处理**：LRC/KRC 歌词解析、时间轴同步逻辑迁移至 Rust（`lyric` crate）
+- **播放引擎**：音频引擎、解码器、播放列表管理迁移至 Rust（`player` crate）
+- **加密解密**：AES、HMAC、SHA2 等加密算法使用 Rust 原生实现，替代 JS 加密库
+- **JNI 桥接**：通过 Rust FFI 与 Android Kotlin 层交互，使用 TurboModule 暴露接口给 React Native
+
 ### Rust 核心模块
 
 ```
