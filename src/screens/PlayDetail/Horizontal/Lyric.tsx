@@ -55,14 +55,14 @@ const LrcLine = memo(({ line, lineNum, activeLine, onLayout }: LineProps) => {
         ...styles.lineText,
         textAlign,
         lineHeight,
-      }} textBreakStrategy="simple" color={colors[0]} opacity={colors[2]} size={size}>{line.text}</AnimatedColorText>
+      }} textBreakStrategy="simple" color={colors[0]} opacity={colors[2]} size={size}>{String(line.text ?? '')}</AnimatedColorText>
       {
         line.extendedLyrics.map((lrc, index) => {
           return (<AnimatedColorText style={{
             ...styles.lineTranslationText,
             textAlign,
             lineHeight: lineHeight * 0.8,
-          }} textBreakStrategy="simple" key={index} color={colors[1]} opacity={colors[2]} size={size * 0.8}>{lrc}</AnimatedColorText>)
+          }} textBreakStrategy="simple" key={index} color={colors[1]} opacity={colors[2]} size={size * 0.8}>{String(lrc ?? '')}</AnimatedColorText>)
         })
       }
     </View>
@@ -262,7 +262,7 @@ export default () => {
       <LrcLine line={item} lineNum={index} activeLine={line} onLayout={handleLineLayout} />
     )
   }
-  const getkey: FlatListType['keyExtractor'] = (item, index) => `${index}${item.text}`
+  const getkey: FlatListType['keyExtractor'] = (item, index) => `${index}${String(item.text ?? '')}`
 
   const spaceComponent = useMemo(() => (
     <View style={styles.space} onLayout={handleSpaceLayout}></View>
