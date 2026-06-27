@@ -1,6 +1,7 @@
 import { View } from 'react-native'
 import { useTheme } from '@/store/theme/hook'
 import { createStyle } from '@/utils/tools'
+import Text from '@/components/common/Text'
 // import { useWindowSize } from '@/utils/hooks'
 const HEADER_HEIGHT = 20
 
@@ -8,15 +9,22 @@ interface Props {
   children: React.ReactNode
 }
 
-
 export default ({ children }: Props) => {
   const theme = useTheme()
+
+  const memoChildren = (() => children)()
+  const renderChildren = ((): any => {
+    if (typeof memoChildren === 'string' || typeof memoChildren === 'number') {
+      return <Text>{memoChildren}</Text>
+    }
+    return memoChildren
+  })()
 
   return (
     <View style={{ ...styles.centeredView, backgroundColor: 'rgba(50,50,50,.3)' }}>
       <View style={{ ...styles.modalView, backgroundColor: theme['c-content-background'] }}>
         <View style={{ ...styles.header, backgroundColor: theme['c-primary-light-100-alpha-100'] }}></View>
-        {children}
+        {renderChildren}
       </View>
     </View>
   )
