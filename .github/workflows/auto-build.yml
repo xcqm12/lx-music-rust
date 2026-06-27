@@ -25,10 +25,12 @@ jobs:
       - name: Build frontend
         run: cd lx-music-tauri && npm run build
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
+      - name: Install Rust and targets
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          source $HOME/.cargo/env
+          rustup default stable
+          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
 
       - name: Install Android NDK
         id: setup-ndk
