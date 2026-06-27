@@ -7,7 +7,7 @@ import { scaleSizeAbsHR } from '@/utils/pixelRatio'
 import { defaultHeaders } from './common/Image'
 import SizeView from './SizeView'
 import { useBgPic } from '@/store/common/hook'
-import Text from '@/components/common/Text'
+import SafeText from '@/components/common/SafeText'
 
 interface Props {
   children: React.ReactNode
@@ -21,9 +21,9 @@ export default ({ children }: Props) => {
   const pic = useBgPic()
 
   const memoChildren = useMemo(() => children, [children])
-  const renderChildren = ((): any => {
+  const renderChildren = ((): React.ReactNode => {
     if (typeof memoChildren === 'string' || typeof memoChildren === 'number') {
-      return <Text>{memoChildren}</Text>
+      return <SafeText>{memoChildren}</SafeText>
     }
     return memoChildren
   })()
