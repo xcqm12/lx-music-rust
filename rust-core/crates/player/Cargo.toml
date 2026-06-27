@@ -22,7 +22,7 @@ ringbuf = "0.4" # 环形缓冲区
 symphonia = { version = "0.5", features = ["all", "opt-simd"] }
 
 # 网络音频流
-reqwest = { version = "0.12", features = ["stream", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["stream", "rustls-tls"] }
 futures = "0.3"
 
 [dev-dependencies]
