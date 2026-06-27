@@ -1,44 +1,12 @@
-[package]
-name = "lx-music-core"
-version = "0.1.0"
-edition = "2021"
-authors = ["LX Music Team"]
-description = "LX Music 核心模块 - Rust 实现"
-license = "MIT"
-
 [workspace]
 members = [
     "crates/player",
     "crates/music-source",
     "crates/lyric",
     "crates/common",
-    "android",
+    "crates/android",
 ]
-
-[dependencies]
-# 异步运行时
-tokio = { version = "1.0", features = ["full"] }
-
-# 序列化/反序列化
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-
-# 错误处理
-thiserror = "1.0"
-anyhow = "1.0"
-
-# 日志
-log = "0.4"
-tracing = "0.1"
-
-# HTTP 客户端
-reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
-
-# 音频播放
-dk = { path = "crates/player" }
-music-source = { path = "crates/music-source" }
-lyric = { path = "crates/lyric" }
-common = { path = "crates/common" }
+resolver = "2"
 
 [profile.release]
 opt-level = 3
