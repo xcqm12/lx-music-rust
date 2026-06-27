@@ -1,43 +1,54 @@
-<p align="center"><a href="https://github.com/lyswhut/lx-music-mobile"><img width="200" src="https://github.com/lyswhut/lx-music-mobile/blob/master/doc/images/icon.png" alt="lx-music logo"></a></p>
+<p align="center"><a href="https://github.com/xcqm12/lx-music-rust"><img width="200" src="doc/images/icon.png" alt="lx-music logo"></a></p>
 
-<h1 align="center">LX Music 移动版</h1>
+<h1 align="center">LX Music 移动版 - Rust 重写</h1>
 
 <p align="center">
-  <a href="https://github.com/lyswhut/lx-music-mobile/releases"><img src="https://img.shields.io/github/release/lyswhut/lx-music-mobile" alt="Release version"></a>
-  <a href="https://github.com/lyswhut/lx-music-mobile/actions/workflows/release.yml"><img src="https://github.com/lyswhut/lx-music-mobile/workflows/Build/badge.svg" alt="Build status"></a>
-  <a href="https://github.com/lyswhut/lx-music-mobile/actions/workflows/beta-pack.yml"><img src="https://github.com/lyswhut/lx-music-mobile/workflows/Build%20Beta/badge.svg" alt="Build status"></a>
-  <a href="https://github.com/facebook/react-native"><img src="https://img.shields.io/github/package-json/dependency-version/lyswhut/lx-music-mobile/react-native/master" alt="React native version"></a>
-  <!-- <a href="https://github.com/lyswhut/lx-music-mobile/releases"><img src="https://img.shields.io/github/downloads/lyswhut/lx-music-mobile/latest/total" alt="Downloads"></a> -->
-  <a href="https://github.com/lyswhut/lx-music-mobile/tree/dev"><img src="https://img.shields.io/github/package-json/v/lyswhut/lx-music-mobile/dev" alt="Dev branch version"></a>
-  <!-- <a href="https://github.com/lyswhut/lx-music-mobile/blob/master/LICENSE"><img src="https://img.shields.io/github/license/lyswhut/lx-music-mobile" alt="License"></a> -->
+  <a href="https://github.com/xcqm12/lx-music-rust/releases"><img src="https://img.shields.io/github/release/xcqm12/lx-music-rust" alt="Release version"></a>
+  <a href="https://github.com/xcqm12/lx-music-rust/actions/workflows/release.yml"><img src="https://github.com/xcqm12/lx-music-rust/workflows/Build/badge.svg" alt="Build status"></a>
+  <a href="https://github.com/xcqm12/lx-music-rust/actions/workflows/beta-pack.yml"><img src="https://github.com/xcqm12/lx-music-rust/workflows/Build%20Beta/badge.svg" alt="Build status"></a>
+  <!-- <a href="https://github.com/xcqm12/lx-music-rust/releases"><img src="https://img.shields.io/github/downloads/xcqm12/lx-music-rust/latest/total" alt="Downloads"></a> -->
+  <a href="https://github.com/xcqm12/lx-music-rust/blob/main/LICENSE"><img src="https://img.shields.io/github/license/xcqm12/lx-music-rust" alt="License"></a>
 </p>
 
-<p align="center">一个基于 React Native 开发的音乐软件</p>
+<p align="center">一个基于 React Native + Rust 开发的音乐软件</p>
 
 ## 说明
 
+该项目是 [LX Music 移动版](https://github.com/lyswhut/lx-music-mobile) 的 Rust 重写版本，将核心音乐源解析、歌词处理、播放器等功能迁移至 Rust 实现。
+
 所用技术栈：
 
-- React Native
-- Redux
+- React Native（UI 层）
+- Rust（核心业务层：音乐源、歌词、播放器）
+- Redux（状态管理）
 
 已支持的平台：
 
 - Android 5 及以上
 
 ***注：目前没有计划支持 iOS 和 HarmonyOS NEXT**。*<br>
+*原始项目地址：<https://github.com/lyswhut/lx-music-mobile>*<br>
 *桌面版项目地址：<https://github.com/lyswhut/lx-music-desktop>*<br>
-*LX Music 项目发展调整与新项目计划：https://github.com/lyswhut/lx-music-desktop/issues/1912*
 
-软件变化请查看[更新日志](https://github.com/lyswhut/lx-music-mobile/blob/master/CHANGELOG.md)。
+软件变化请查看[更新日志](https://github.com/xcqm12/lx-music-rust/blob/main/CHANGELOG.md)。
 
-软件下载请查看 [GitHub Releases](https://github.com/lyswhut/lx-music-mobile/releases)。
+软件下载请查看 [GitHub Releases](https://github.com/xcqm12/lx-music-rust/releases)。
 
 使用常见问题请参阅[移动版常见问题](https://lyswhut.github.io/lx-music-doc/mobile/faq)。
 
-目前本项目的原始发布地址只有 [**GitHub**](https://github.com/lyswhut/lx-music-mobile/releases)，其他渠道均为第三方转载发布，与本项目无关！
-
 为了提高使用门槛，本软件内的默认设置、UI 操作不以新手友好为目标，所以使用前建议先根据你的喜好浏览调整一遍软件设置，阅读一遍[音乐播放列表机制](https://lyswhut.github.io/lx-music-doc/mobile/faq/playlist)。
+
+### Rust 核心模块
+
+```
+rust-core/
+├── crates/
+│   ├── common/        # 公共类型、错误处理、工具函数
+│   ├── lyric/         # 歌词解析、同步管理
+│   ├── music-source/  # 音乐源（酷我、酷狗、咪咕等）
+│   ├── player/        # 音频引擎、解码器、播放列表
+│   └── android/       # Android JNI 绑定
+```
 
 ### 数据同步服务
 
@@ -57,26 +68,21 @@
 2. 克隆本仓库代码并切换至 `dev` 分支进行开发；
 3. 提交 PR 至 `dev` 分支。
 
-<!--
-## 用户界面
-
-<p><img width="100%" src="https://github.com/lyswhut/lx-music-mobile/blob/master/doc/images/app.png" alt="lx-music mobile UI"></p> -->
-
 ## 项目协议
 
-本项目基于 [Apache License 2.0](https://github.com/lyswhut/lx-music-mobile/blob/master/LICENSE) 许可证发行，以下协议是对于 Apache License 2.0 的补充，如有冲突，以以下协议为准。
+本项目基于 [Apache License 2.0](https://github.com/xcqm12/lx-music-rust/blob/main/LICENSE) 许可证发行，以下协议是对于 Apache License 2.0 的补充，如有冲突，以以下协议为准。
 
 ---
 
-*词语约定：本协议中的“本项目”指 LX Music（洛雪音乐）移动版项目；“使用者”指签署本协议的使用者；“官方音乐平台”指对本项目内置的包括酷我、酷狗、咪咕等音乐源的官方平台统称；“版权数据”指包括但不限于图像、音频、名字等在内的他人拥有所属版权的数据。*
+*词语约定：本协议中的"本项目"指 LX Music（洛雪音乐）移动版 Rust 重写项目；"使用者"指签署本协议的使用者；"官方音乐平台"指对本项目内置的包括酷我、酷狗、咪咕等音乐源的官方平台统称；"版权数据"指包括但不限于图像、音频、名字等在内的他人拥有所属版权的数据。*
 
 ### 一、数据来源
 
 1.1 本项目的各官方平台在线数据来源原理是从其公开服务器中拉取数据（与未登录状态在官方平台 APP 获取的数据相同），经过对数据简单地筛选与合并后进行展示，因此本项目不对数据的合法性、准确性负责。
 
-1.2 本项目本身没有获取某个音频数据的能力，本项目使用的在线音频数据来源来自软件设置内“自定义源”设置所选择的“源”返回的在线链接。例如播放某首歌，本项目所做的只是将希望播放的歌曲名、艺术家等信息传递给“源”，若“源”返回了一个链接，则本项目将认为这就是该歌曲的音频数据而进行使用，至于这是不是正确的音频数据本项目无法校验其准确性，所以使用本项目的过程中可能会出现希望播放的音频与实际播放的音频不对应或者无法播放的问题。
+1.2 本项目本身没有获取某个音频数据的能力，本项目使用的在线音频数据来源来自软件设置内"自定义源"设置所选择的"源"返回的在线链接。例如播放某首歌，本项目所做的只是将希望播放的歌曲名、艺术家等信息传递给"源"，若"源"返回了一个链接，则本项目将认为这就是该歌曲的音频数据而进行使用，至于这是不是正确的音频数据本项目无法校验其准确性，所以使用本项目的过程中可能会出现希望播放的音频与实际播放的音频不对应或者无法播放的问题。
 
-1.3 本项目的非官方平台数据（例如“我的列表”内列表）来自使用者本地系统或者使用者连接的同步服务，本项目不对这些数据的合法性、准确性负责。
+1.3 本项目的非官方平台数据（例如"我的列表"内列表）来自使用者本地系统或者使用者连接的同步服务，本项目不对这些数据的合法性、准确性负责。
 
 ### 二、版权数据
 
@@ -111,7 +117,3 @@
 ### 九、接受协议
 
 9.1 若你使用了本项目，即代表你接受本协议。
-
----
-
-若对此有疑问请 mail to: lyswhut+qq.com (请将 `+` 替换成 `@`)
