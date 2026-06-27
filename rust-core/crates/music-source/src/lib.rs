@@ -97,8 +97,7 @@ impl MusicSourceManager {
     }
     
     /// 获取所有可用源
-    pub fn get_available_sources(&self,
-    ) -> Vec<Arc<dyn MusicSourceProvider>> {
+    pub fn get_available_sources(&self) -> Vec<Arc<dyn MusicSourceProvider>> {
         self.sources
             .iter()
             .map(|entry| Arc::clone(&*entry.value()))
@@ -198,8 +197,7 @@ impl MusicSourceManager {
     /// 匹配两个音乐信息是否相同
     fn is_match(a: &MusicInfo, b: &MusicInfo) -> bool {
         // 1. 歌曲名相似度
-        let name_match = utils::similarity(&a.name.to_lowercase(), 
-&b.name.to_lowercase()) > 0.8;
+        let name_match = utils::similarity(&a.name.to_lowercase(), &b.name.to_lowercase()) > 0.8;
         
         // 2. 歌手匹配（至少有一位相同）
         let singer_match = a.singer.iter().any(|s| {
