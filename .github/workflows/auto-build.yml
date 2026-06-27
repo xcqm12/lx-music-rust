@@ -32,6 +32,7 @@ jobs:
           toolchain: stable
 
       - name: Install Android NDK
+        id: setup-ndk
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r26b
@@ -58,19 +59,22 @@ jobs:
 
       - name: Build Rust core
         env:
-          ANDROID_NDK_HOME: ${{ env.NDK_PATH }}
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: |
-          cargo ndk -t arm64-v8a -o android/app/src/main/jniLibs build --release
-          cargo ndk -t armeabi-v7a -o android/app/src/main/jniLibs build --release
-          cargo ndk -t x86_64 -o android/app/src/main/jniLibs build --release
-          cargo ndk -t x86 -o android/app/src/main/jniLibs build --release
+          cd rust-core
+          cargo ndk -t arm64-v8a -o "../android/app/src/main/jniLibs" build --release
+          cargo ndk -t armeabi-v7a -o "../android/app/src/main/jniLibs" build --release
+          cargo ndk -t x86_64 -o "../android/app/src/main/jniLibs" build --release
+          cargo ndk -t x86 -o "../android/app/src/main/jniLibs" build --release
 
       - name: Build APK
         env:
           DISABLE_SVG: 1
         run: |
           cd android
-          ./gradlew assembleRelease --no-daemon
+          echo ${{ secrets.KEYSTORE_STORE_FILE_BASE64 }} | base64 --decode > app/${{ secrets.KEYSTORE_STORE_FILE }}
+          ./gradlew assembleRelease -PMYAPP_UPLOAD_STORE_FILE='${{ secrets.KEYSTORE_STORE_FILE }}' -PMYAPP_UPLOAD_KEY_ALIAS='${{ secrets.KEYSTORE_KEY_ALIAS }}' -PMYAPP_UPLOAD_STORE_PASSWORD='${{ secrets.KEYSTORE_PASSWORD }}' -PMYAPP_UPLOAD_KEY_PASSWORD='${{ secrets.KEYSTORE_KEY_PASSWORD }}' --no-daemon
+          rm -f app/${{ secrets.KEYSTORE_STORE_FILE }}
 
       - name: Get package version
         id: version
