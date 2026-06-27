@@ -1,6 +1,7 @@
 // import { createStyle } from '@/utils/tools'
 import { useImperativeHandle, forwardRef, useState, useMemo } from 'react'
 import { Modal, TouchableWithoutFeedback, View, type ModalProps as _ModalProps } from 'react-native'
+import Text from '@/components/common/Text'
 import { useStatusbarHeight } from '@/store/common/hook'
 // import { useWindowSize } from '@/utils/hooks'
 
@@ -79,6 +80,14 @@ export default forwardRef<ModalType, ModalProps>(({
 
   const memoChildren = useMemo(() => children, [children])
 
+  // Ensure we never render raw text directly under a View; wrap primitives in a Text component
+  const renderChildren = ((): any => {
+    if (typeof memoChildren === 'string' || typeof memoChildren === 'number') {
+      return <Text>{memoChildren}</Text>
+    }
+    return memoChildren
+  })()
+
   return (
     <Modal
       animationType="fade"
@@ -91,9 +100,9 @@ export default forwardRef<ModalType, ModalProps>(({
     >
       {/* <StatusBar /> */}
       {/* <View style={{ flex: 1, paddingTop: statusBarPadding ? StatusBar.currentHeight : 0 }}> */}
-      <TouchableWithoutFeedback style={{ flex: 1, paddingTop: statusBarPadding ? statusBarHeight : 0 }} onPress={handleBgClose}>
-        <View style={{ flex: 1, backgroundColor: bgColor }}>
-          {memoChildren}
+      <TouchableWithoutFeedback onPress={handleBgClose}>
+        <View style={{ flex: 1, paddingTop: statusBarPadding ? statusBarHeight : 0, backgroundColor: bgColor }}>
+          {renderChildren}
         </View>
       </TouchableWithoutFeedback>
       {/* </View> */}
