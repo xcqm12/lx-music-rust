@@ -6,6 +6,22 @@ import { useAnimateColor } from '@/utils/hooks/useAnimateColor'
 import { DEFAULT_DURATION, useAnimateNumber } from '@/utils/hooks/useAnimateNumber'
 // import { AppColors } from '@/theme'
 
+/**
+ * 将任意 children 值安全转换为字符串，避免 RN Text 组件崩溃
+ * null/undefined -> ''
+ * 对象/数组 -> JSON.stringify 或 String()
+ * 其他 -> String()
+ */
+const toSafeString = (children: unknown): string => {
+  if (children == null) return ''
+  if (typeof children === 'string') return children
+  if (typeof children === 'number' || typeof children === 'boolean') return String(children)
+  if (typeof children === 'object') {
+    try { return JSON.stringify(children) } catch { return String(children) }
+  }
+  return String(children)
+}
+
 export interface TextProps extends _TextProps {
   /**
    * 字体大小
@@ -49,7 +65,7 @@ export default memo(({ style, size = 15, color, children, ...props }: TextProps)
     <Text
       style={style}
       {...props}
-    >{children}</Text>
+    >{toSafeString(children)}</Text>
   )
 })
 
@@ -79,7 +95,7 @@ export const AnimatedText = ({ style, size = 15, color, children, ...props }: An
     color: color ?? theme['c-font'],
   }, style as TextStyle)
 
-  return <Animated.Text style={style} {...props}>{children}</Animated.Text>
+  return <Animated.Text style={style} {...props}>{toSafeString(children)}</Animated.Text>
 }
 
 
@@ -120,5 +136,5 @@ export const AnimatedColorText = ({ style, size = 15, opacity: _opacity, color: 
     opacity,
   }, style as TextStyle)
 
-  return <Animated.Text style={style} {...props}>{children}</Animated.Text>
+  return <Animated.Text style={style} {...props}>{toSafeString(children)}</Animated.Text>
 }

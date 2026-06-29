@@ -56,7 +56,7 @@ export default memo(({ item, index, showSource, onPress, onLongPress, onShowMenu
   }
   const tagInfo = useQualityTag(item)
 
-  const singer = `${item.singer}${isShowAlbumName && item.meta.albumName ? ` · ${item.meta.albumName}` : ''}`
+  const singer = `${item.singer ?? ''}${isShowAlbumName && item.meta.albumName ? ` · ${item.meta.albumName}` : ''}`
 
   return (
     <View style={{ ...styles.listItem, width: rowInfo.rowWidth, height: ITEM_HEIGHT, backgroundColor: isSelected ? theme['c-primary-background-hover'] : 'rgba(0,0,0,0)' }}>
@@ -66,7 +66,7 @@ export default memo(({ item, index, showSource, onPress, onLongPress, onShowMenu
           <Text numberOfLines={1}>{item.name}</Text>
           <View style={styles.listItemSingle}>
             { tagInfo.type ? <Badge type={tagInfo.type}>{tagInfo.text}</Badge> : null }
-            { showSource ? <Badge type="tertiary">{item.source}</Badge> : null }
+            { showSource ? <Badge type="tertiary">{String(item.source ?? '')}</Badge> : null }
             <Text style={styles.listItemSingleText} size={11} color={theme['c-500']} numberOfLines={1}>{singer}</Text>
           </View>
         </View>
