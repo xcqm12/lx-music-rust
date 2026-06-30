@@ -10,7 +10,6 @@ import Backup from './settings/Backup'
 import Other from './settings/Other'
 import Version from './settings/Version'
 import About from './settings/About'
-import CustomSource from './settings/CustomSource'
 
 export const SETTING_SCREENS = [
   'basic',
@@ -23,7 +22,6 @@ export const SETTING_SCREENS = [
   'other',
   'version',
   'about',
-  'custom_source',
 ] as const
 
 export type SettingScreenIds = typeof SETTING_SCREENS[number]
@@ -59,7 +57,6 @@ const Main = forwardRef<MainType, {}>((props, ref) => {
       case 'other': return <Other />
       case 'version': return <Version />
       case 'about': return <About />
-      case 'custom_source': return <CustomSource />
       case 'basic':
       default: return <Basic />
     }

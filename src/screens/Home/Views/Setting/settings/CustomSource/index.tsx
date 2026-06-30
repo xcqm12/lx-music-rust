@@ -156,7 +156,7 @@ export default () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text size={15} style={styles.title}>{t('custom_source_title')}</Text>
-        <Button size='small' onPress={handleAddSource}>{t('custom_source_add')}</Button>
+        <Button size='small' onPress={handleAddSource}><Text size={13}>{t('custom_source_add')}</Text></Button>
       </View>
 
       {!engineReady && (
@@ -249,11 +249,11 @@ export default () => {
           <View style={styles.modalActions}>
             {editingSource && (
               <Button size='small' onPress={handleTestSource} style={styles.testBtn}>
-                {t('custom_source_test')}
+                <Text size={13}>{t('custom_source_test')}</Text>
               </Button>
             )}
             <Button size='small' type='primary' onPress={handleSaveSource}>
-              {t('save')}
+              <Text size={13}>{t('save')}</Text>
             </Button>
           </View>
         </ScrollView>

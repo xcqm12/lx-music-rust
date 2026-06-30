@@ -16,6 +16,10 @@ const baseRule = {
   'multiline-ternary': 'off',
   'react/display-name': 'off',
   'react/prop-types': 'off',
+  'react-native/no-inline-styles': 'error',
+  'react-native/no-raw-text': ['error', {
+    ignore: ['Button', 'Text', 'SafeText'],
+  }],
 }
 
 module.exports = {
@@ -28,6 +32,7 @@ module.exports = {
   ],
   plugins: [
     'react',
+    'react-native',
   ],
   rules: baseRule,
   parser: '@babel/eslint-parser',

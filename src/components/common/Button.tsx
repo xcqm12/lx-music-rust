@@ -1,6 +1,7 @@
 import { useTheme } from '@/store/theme/hook'
 import { useMemo, useRef, useImperativeHandle, forwardRef } from 'react'
 import { Pressable, type PressableProps, StyleSheet, type View, type ViewProps } from 'react-native'
+import Text from './Text'
 // import { AppColors } from '@/theme'
 
 
@@ -15,6 +16,14 @@ export interface BtnProps extends PressableProps {
 
 export interface BtnType {
   measure: (callback: (x: number, y: number, width: number, height: number, pageX: number, pageY: number) => void) => void
+}
+
+const renderChildren = (children: React.ReactNode): React.ReactNode => {
+  if (children == null) return null
+  if (typeof children === 'string' || typeof children === 'number' || typeof children === 'boolean') {
+    return <Text>{children}</Text>
+  }
+  return children
 }
 
 export default forwardRef<BtnType, BtnProps>(({ ripple: propsRipple = {}, disabled, children, style, ...props }, ref) => {
@@ -39,7 +48,7 @@ export default forwardRef<BtnType, BtnProps>(({ ripple: propsRipple = {}, disabl
       {...props}
       ref={btnRef}
     >
-      {children}
+      {renderChildren(children)}
     </Pressable>
   )
 })

@@ -1,10 +1,25 @@
-import { memo, type ComponentProps } from 'react'
+import { memo, type ComponentProps, type ReactElement, type ReactNode } from 'react'
 import { Text, type TextProps as _TextProps, StyleSheet, Animated, type ColorValue, type TextStyle } from 'react-native'
 import { useTextShadow, useTheme } from '@/store/theme/hook'
 import { setSpText } from '@/utils/pixelRatio'
 import { useAnimateColor } from '@/utils/hooks/useAnimateColor'
 import { DEFAULT_DURATION, useAnimateNumber } from '@/utils/hooks/useAnimateNumber'
 // import { AppColors } from '@/theme'
+
+const isReactElement = (children: unknown): children is ReactElement => {
+  return typeof children === 'object' && children !== null && (children as ReactElement).$$typeof !== undefined
+}
+
+const toSafeChildren = (children: unknown): ReactNode => {
+  if (children == null) return ''
+  if (typeof children === 'string') return children
+  if (typeof children === 'number' || typeof children === 'boolean') return String(children)
+  if (isReactElement(children)) return children
+  if (Array.isArray(children)) {
+    return children.map((child, index) => toSafeChildren(child))
+  }
+  return children
+}
 
 export interface TextProps extends _TextProps {
   /**
@@ -49,7 +64,7 @@ export default memo(({ style, size = 15, color, children, ...props }: TextProps)
     <Text
       style={style}
       {...props}
-    >{children}</Text>
+    >{toSafeChildren(children)}</Text>
   )
 })
 
@@ -79,7 +94,7 @@ export const AnimatedText = ({ style, size = 15, color, children, ...props }: An
     color: color ?? theme['c-font'],
   }, style as TextStyle)
 
-  return <Animated.Text style={style} {...props}>{children}</Animated.Text>
+  return <Animated.Text style={style} {...props}>{toSafeChildren(children)}</Animated.Text>
 }
 
 
@@ -120,5 +135,5 @@ export const AnimatedColorText = ({ style, size = 15, opacity: _opacity, color: 
     opacity,
   }, style as TextStyle)
 
-  return <Animated.Text style={style} {...props}>{children}</Animated.Text>
+  return <Animated.Text style={style} {...props}>{toSafeChildren(children)}</Animated.Text>
 }

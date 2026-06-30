@@ -1,7 +1,7 @@
 {
   "name": "lx-music-mobile",
-  "version": "1.8.4",
-  "versionCode": 76,
+  "version": "1.8.6",
+  "versionCode": 78,
   "private": true,
   "scripts": {
     "dev": "react-native run-android --active-arch-only",
@@ -74,6 +74,7 @@
     "@babel/preset-env": "^7.29.2",
     "@babel/runtime": "^7.29.2",
     "@react-native/babel-preset": "^0.74.89",
+    "@react-native/codegen": "^0.74.89",
     "@react-native/metro-config": "^0.74.89",
     "@react-native/typescript-config": "^0.74.89",
     "@tsconfig/react-native": "^3.0.9",
@@ -88,6 +89,7 @@
     "eslint-config-standard-with-typescript": "^43.0.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-native": "^5.0.0",
     "typescript": "^5.9.3"
   },
   "overrides": {
