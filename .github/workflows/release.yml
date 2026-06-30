@@ -37,7 +37,7 @@ jobs:
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
       - name: Create git tag
-        uses: pkgdeps/git-tag-action@v3
+        uses: pkgdeps/git-tag-action@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_repo: ${{ github.repository }}
@@ -82,7 +82,7 @@ jobs:
   #         echo "COMMIT_SHA=$(git show -s --format=%H)" >> $GITHUB_ENV
 
   #     - name: Create git tag
-  #       uses: pkgdeps/git-tag-action@v3
+  #       uses: pkgdeps/git-tag-action@v4
   #       with:
   #         github_token: ${{ secrets.GITHUB_TOKEN }}
   #         github_repo: ${{ github.repository }}
@@ -129,7 +129,7 @@ jobs:
   #         echo "COMMIT_SHA=$(git show -s --format=%H)" >> $GITHUB_ENV
 
   #     - name: Create git tag
-  #       uses: pkgdeps/git-tag-action@v3
+  #       uses: pkgdeps/git-tag-action@v4
   #       with:
   #         github_token: ${{ secrets.GITHUB_TOKEN }}
   #         github_repo: ${{ github.repository }}
@@ -178,7 +178,7 @@ jobs:
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> $GITHUB_ENV
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v2.0.8
         with:
           body_path: ./publish/changeLog.md
           prerelease: false
