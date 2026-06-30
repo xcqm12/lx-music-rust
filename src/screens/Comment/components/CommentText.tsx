@@ -12,13 +12,14 @@ export default memo(({ text }: { text: string }) => {
   const [show, setShow] = useState(false)
   const theme = useTheme()
 
+  const safeText = text ?? ''
   const length = useMemo(() => {
     // text.length + (text.match(CHAR_RXP)?.length ?? 0) * 40
     let count = 0
     let bCount = 0
     let subLength = 0
-    for (let i = 0; i < text.length; i++) {
-      let char = text.charAt(i)
+    for (let i = 0; i < safeText.length; i++) {
+      let char = safeText.charAt(i)
       if (char == '\n') {
         count += bCount * 24 + 20
         bCount++
@@ -36,15 +37,15 @@ export default memo(({ text }: { text: string }) => {
     length ? (
       <View>
         {
-          show ? <Text selectable style={styles.text}>{text}</Text>
-            : <Text selectable style={styles.text}>{text.substring(0, length)} <Text color={theme['c-font-label']}>……</Text></Text>
+          show ? <Text selectable style={styles.text}>{safeText}</Text>
+            : <Text selectable style={styles.text}>{safeText.substring(0, length)} <Text color={theme['c-font-label']}>……</Text></Text>
         }
         <TouchableOpacity style={styles.toggle} onPress={() => { setShow(!show) }}>
           <Text color={theme['c-primary-font']}>{show ? global.i18n.t('comment_hide_text') : global.i18n.t('comment_show_text')}</Text>
         </TouchableOpacity>
 
       </View>
-    ) : <Text selectable style={styles.text}>{text}</Text>
+    ) : <Text selectable style={styles.text}>{safeText}</Text>
   )
 })
 

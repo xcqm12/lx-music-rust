@@ -14,6 +14,9 @@ React Native 文本渲染稳定性优化，修复多个潜在崩溃问题。
 
 - **Text 组件崩溃**：修复 "Text strings must be rendered within a <Text> component" 崩溃问题，通过 SafeText 组件自动处理空值和非字符串类型
 - **设置页面显示异常**：修复设置页面显示 `[object Object]` 的问题，重构 `toSafeChildren` 函数保留 React 元素类型
+- **TrackPlayer 参数错误**：修复 `updateNowPlayingMetadata` 调用缺少 `isPlaying` 参数导致的 NativeArgumentsParseException 崩溃
+- **react-native-track-player 依赖**：补充缺失的 `lib/` 编译产物，解决 Metro bundler 模块解析失败
+- **列表渲染安全**：修复 `ListItem`、`CommentText`、`Header` 等组件中可能导致 null/undefined 渲染的问题
 - **移除自定义音源管理**：从设置页面移除自定义音源管理模块，清理相关路由和渲染逻辑
 
 ### 优化
@@ -24,6 +27,8 @@ React Native 文本渲染稳定性优化，修复多个潜在崩溃问题。
 
 ### 构建
 
+- 完善 ADB 端口转发配置，支持 MuMu 模拟器调试
+- 优化 Metro bundler 缓存重置流程，解决模块解析缓存问题
 - 完成正式版签名打包配置，支持 arm64-v8a、armeabi-v7a、x86_64、x86 四架构
 
 ## [1.8.5](https://github.com/xcqm12/lx-music-rust/compare/v1.8.4...v1.8.5) - 2026-06-28
