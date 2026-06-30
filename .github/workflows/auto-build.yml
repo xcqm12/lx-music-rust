@@ -20,16 +20,17 @@ jobs:
       - name: Build Packages
         env:
           DISABLE_SVG: 1
+          GRADLE_OPTS: "-Xmx6144m -XX:MaxMetaspaceSize=2048m"
         shell: bash
         run: |
           cd android
           chmod +x gradlew
           if [ -n "${{ secrets.KEYSTORE_STORE_FILE_BASE64 }}" ] && [ -n "${{ secrets.KEYSTORE_STORE_FILE }}" ]; then
             echo "${{ secrets.KEYSTORE_STORE_FILE_BASE64 }}" | base64 --decode > app/${{ secrets.KEYSTORE_STORE_FILE }}
-            ./gradlew assembleRelease -PMYAPP_UPLOAD_STORE_FILE='${{ secrets.KEYSTORE_STORE_FILE }}' -PMYAPP_UPLOAD_KEY_ALIAS='${{ secrets.KEYSTORE_KEY_ALIAS }}' -PMYAPP_UPLOAD_STORE_PASSWORD='${{ secrets.KEYSTORE_PASSWORD }}' -PMYAPP_UPLOAD_KEY_PASSWORD='${{ secrets.KEYSTORE_KEY_PASSWORD }}'
+            ./gradlew assembleRelease --no-daemon -PMYAPP_UPLOAD_STORE_FILE='${{ secrets.KEYSTORE_STORE_FILE }}' -PMYAPP_UPLOAD_KEY_ALIAS='${{ secrets.KEYSTORE_KEY_ALIAS }}' -PMYAPP_UPLOAD_STORE_PASSWORD='${{ secrets.KEYSTORE_PASSWORD }}' -PMYAPP_UPLOAD_KEY_PASSWORD='${{ secrets.KEYSTORE_KEY_PASSWORD }}'
             rm -f app/${{ secrets.KEYSTORE_STORE_FILE }}
           else
-            ./gradlew assembleRelease
+            ./gradlew assembleRelease --no-daemon
           fi
 
       - name: Get package version
