@@ -17,9 +17,7 @@ const baseRule = {
   'react/display-name': 'off',
   'react/prop-types': 'off',
   'react-native/no-inline-styles': 'error',
-  'react-native/no-raw-text': ['error', {
-    ignore: ['Button', 'Text', 'SafeText'],
-  }],
+  'react-native/no-raw-text': 'error',
 }
 
 module.exports = {

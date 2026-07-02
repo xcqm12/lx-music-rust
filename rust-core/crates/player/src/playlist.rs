@@ -6,6 +6,7 @@ use rand::thread_rng;
 use std::sync::Arc;
 
 /// 播放列表管理器
+#[derive(Clone)]
 pub struct PlaylistManager {
     tracks: Arc<RwLock<Vec<MusicInfo>>>,
     current_index: Arc<RwLock<usize>>,

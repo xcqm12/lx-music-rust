@@ -15,12 +15,10 @@ const currentVer = process.versions.app
 export default memo(() => {
   const t = useI18n()
   const versionInfo = useVersionInfo()
-  // const versionStatus = useVrsionUpdateStatus()
   const [title, setTitle] = useState('')
   const [tip, setTip] = useState('')
   const progress = useVersionDownloadProgressUpdated()
   const handleOpenVersionModal = () => {
-    // setVersionInfo({ showModal: true })
     showModal()
   }
 
@@ -53,8 +51,6 @@ export default memo(() => {
           setTitle(t('version_title_failed'))
           setTip(t('version_tip_failed'))
           break
-        // case 'idle':
-        //   break
         default:
           setTitle(t('version_title_new'))
           setTip('')
@@ -67,7 +63,7 @@ export default memo(() => {
     <Section title={t('setting_version')}>
       <SubTitle title={title}>
         <View style={styles.desc}>
-          <Text size={14}>{t('version_label_latest_ver')}{versionInfo.newVersion?.version}</Text>
+          <Text size={14}>{t('version_label_latest_ver')}{versionInfo.newVersion?.version || currentVer}</Text>
           <Text size={14}>{t('version_label_current_ver')}{currentVer}</Text>
           {
             tip ? <Text size={14}>{tip}</Text> : null

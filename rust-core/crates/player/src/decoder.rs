@@ -31,31 +31,34 @@ pub struct AudioFrame {
 
 /// Symphonia 解码器实现
 pub struct SymphoniaDecoder {
-    // Symphonia 内部状态
-    reader: Option<symphonia::core::io::MediaSourceStream>,
     format: Option<Box<dyn symphonia::core::formats::FormatReader>>,
     decoder: Option<Box<dyn symphonia::core::codecs::Decoder>>,
     track_id: u32,
     sample_rate: u32,
     channels: u16,
+    duration: Option<f64>,
+    time_base: Option<symphonia::core::units::TimeBase>,
+    n_frames: Option<u64>,
 }
 
 impl SymphoniaDecoder {
     pub fn new() -> Self {
         Self {
-            reader: None,
             format: None,
             decoder: None,
             track_id: 0,
             sample_rate: 44100,
             channels: 2,
+            duration: None,
+            time_base: None,
+            n_frames: None,
         }
     }
 }
 
 impl AudioDecoder for SymphoniaDecoder {
     fn open(&mut self, source: Box<dyn MediaSource>) -> Result<()> {
-        use symphonia::core::formats::{FormatOptions, FormatReader};
+        use symphonia::core::formats::FormatOptions;
         use symphonia::core::io::MediaSourceStream;
         use symphonia::core::meta::MetadataOptions;
         use symphonia::core::probe::Hint;
@@ -79,6 +82,15 @@ impl AudioDecoder for SymphoniaDecoder {
         self.sample_rate = track.codec_params.sample_rate.unwrap_or(44100);
         self.channels = track.codec_params.channels.map(|c| c.count() as u16).unwrap_or(2);
         
+        let time_base = track.codec_params.time_base;
+        let n_frames = track.codec_params.n_frames;
+        
+        let duration = if let (Some(tb), Some(nf)) = (time_base, n_frames) {
+            Some(tb.calc_time(nf).seconds as f64 + tb.calc_time(nf).frac)
+        } else {
+            None
+        };
+        
         // 创建解码器
         let decoder_opts: symphonia::core::codecs::DecoderOptions = Default::default();
         let decoder = symphonia::default::get_codecs()
@@ -87,14 +99,15 @@ impl AudioDecoder for SymphoniaDecoder {
         
         self.decoder = Some(decoder);
         self.format = Some(format);
+        self.time_base = time_base;
+        self.n_frames = n_frames;
+        self.duration = duration;
         
         Ok(())
     }
     
     fn decode_frame(&mut self) -> Result<Option<AudioFrame>> {
         use symphonia::core::audio::SampleBuffer;
-        use symphonia::core::codecs::Decoder;
-        use symphonia::core::formats::FormatReader;
         
         let format = self.format.as_mut()
             .ok_or_else(|| common::Error::Player("Format not initialized".to_string()))?;
@@ -138,18 +151,18 @@ impl AudioDecoder for SymphoniaDecoder {
     }
     
     fn duration(&self) -> Option<f64> {
-        // 从 format 获取时长
-        None
+        self.duration
     }
     
     fn seek(&mut self, position: f64) -> Result<()> {
         use symphonia::core::formats::{FormatReader, SeekMode, SeekTo};
+        use symphonia::core::units::Time;
         
         if let Some(format) = self.format.as_mut() {
-            let time = symphonia::core::units::Time::new(
-                position as u64,
-                (position.fract() * 1_000_000_000.0) as u32 as f64,
-            );
+            let seconds = position.trunc() as u64;
+            let frac = position.fract();
+            
+            let time = Time::new(seconds, frac);
             
             format.seek(
                 SeekMode::Coarse,
