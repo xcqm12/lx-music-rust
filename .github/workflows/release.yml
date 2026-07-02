@@ -20,9 +20,18 @@ jobs:
         env:
           DISABLE_SVG: 1
           GRADLE_OPTS: "-Xmx6144m -XX:MaxMetaspaceSize=2048m"
+          NDK_VERSION: "26.1.10909125"
         shell: bash
         run: |
-          cd android
+          export ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/${NDK_VERSION}
+          echo "ANDROID_NDK_HOME=${ANDROID_NDK_HOME}" >> $GITHUB_ENV
+          
+          cargo install cargo-ndk
+          
+          cd rust-core
+          cargo ndk -t armeabi-v7a -t arm64-v8a -t x86 -t x86_64 -o ../android/app/src/main/jniLibs build --release
+          
+          cd ../android
           chmod +x gradlew
           if [ -n "${{ secrets.KEYSTORE_STORE_FILE_BASE64 }}" ] && [ -n "${{ secrets.KEYSTORE_STORE_FILE }}" ]; then
             echo "${{ secrets.KEYSTORE_STORE_FILE_BASE64 }}" | base64 --decode > app/${{ secrets.KEYSTORE_STORE_FILE }}
