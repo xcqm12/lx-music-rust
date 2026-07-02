@@ -6,7 +6,6 @@ import { getIgnoreVersion, getIgnoreVersionFailTipTime, saveIgnoreVersion, saveI
 import { showVersionModal } from '@/navigation'
 import { Navigation } from 'react-native-navigation'
 import { toast } from '@/utils/tools'
-import { version } from '../../package.json'
 
 const localVersionInfo = {
   version: '1.8.6',
@@ -22,7 +21,7 @@ const localVersionInfo = {
 export const showModal = () => {
   if (versionState.showModal) return
   versionActions.setVisibleModal(true)
-  showModal()
+  showVersionModal()
 }
 
 export const hideModal = (componentId: string) => {

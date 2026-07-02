@@ -40,7 +40,7 @@ public class CacheModule extends ReactContextBaseJavaModule {
       fileSize += getDirSize(externalCacheDir);
     }
 
-    promise.resolve(String.valueOf(fileSize));
+    promise.resolve(fileSize);
   }
 
   //清除缓存
