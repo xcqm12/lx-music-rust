@@ -26,7 +26,7 @@ jobs:
           export ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/${NDK_VERSION}
           if [ ! -d "$ANDROID_NDK_HOME" ]; then
             echo "NDK ${NDK_VERSION} not preinstalled on runner, installing via sdkmanager..."
-            yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --install "ndk;${NDK_VERSION}"
+            sdkmanager --install "ndk;${NDK_VERSION}" > /dev/null
           fi
           echo "ANDROID_NDK_HOME=${ANDROID_NDK_HOME}" >> $GITHUB_ENV
           
