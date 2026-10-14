@@ -8,9 +8,12 @@ on:
 jobs:
   dispatch:
     runs-on: ubuntu-latest
+    # secrets 上下文不允许用于 steps.if，经 job 级 env 传递（fork 未配置 PAT 时跳过）
+    env:
+      HAS_PAT: ${{ secrets.PAT != '' }}
     steps:
       - name: Repository Dispatch
-        if: ${{ secrets.PAT != '' }}
+        if: ${{ env.HAS_PAT == 'true' }}
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.PAT }}
