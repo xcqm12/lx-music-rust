@@ -1,4 +1,4 @@
-use crate::{MusicSourceProvider, crypto, utils};
+use crate::{MusicSourceProvider, crypto};
 use common::{MusicInfo, MusicQuality, MusicSource, LyricInfo, Result, Error};
 use reqwest::Client;
 use serde_json::Value;

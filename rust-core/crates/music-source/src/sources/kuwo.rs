@@ -1,4 +1,4 @@
-use crate::{MusicSourceProvider, crypto, utils};
+use crate::{MusicSourceProvider, utils};
 use common::{MusicInfo, MusicQuality, MusicSource, LyricInfo, Result, Error};
 use reqwest::Client;
 use serde_json::Value;
@@ -131,36 +131,19 @@ impl MusicSourceProvider for KuwoSource {
     }
     
     async fn get_lyric(&self, music_info: &MusicInfo) -> Result<LyricInfo> {
+        // 上游 1.9.0：mlyric.kuwo.cn 二进制链路（tp=content 头 + inflate + lrcx XOR），
+        // 解析/逐字重排见 crate::kw_lyric
         let url = format!(
-            "{}/api/v1/www/music/playUrl",
-            self.base_url
+            "http://mlyric.kuwo.cn/mobi.s?f=web&type=lyric&lrcx=1&rid={}&encode=utf8",
+            music_info.id
         );
-        
-        let params = [
-            ("mid", music_info.id.as_str()),
-            ("type", "lyric"),
-        ];
-        
-        let resp = self.client
-            .get(&url)
-            .query(&params)
-            .send()
-            .await?;
-        
-        let json: Value = resp.json().await?;
-        
-        let lyric = json.get("data")
-            .and_then(|d| d.get("lrclist"))
-            .and_then(|l| l.as_str())
-            .map(|s| s.to_string())
-            .unwrap_or_default();
-        
-        Ok(LyricInfo {
-            lyric,
-            tlyric: None,
-            rlyric: None,
-            lxlyric: None,
-        })
+        let resp = self.client.get(&url).send().await?;
+        if !resp.status().is_success() {
+            return Err(Error::Lyric("Get lyric failed".to_string()));
+        }
+        let bytes = resp.bytes().await?;
+        let lrc_text = crate::kw_lyric::decode_lyric(&bytes, true)?;
+        crate::kw_lyric::get_lyric_info(&lrc_text)
     }
     
     async fn get_pic_url(&self, music_info: &MusicInfo) -> Result<String> {

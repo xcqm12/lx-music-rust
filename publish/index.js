@@ -1,50 +1,66 @@
-// const fs = require('fs')
-// const path = require('path')
-const chalk = require('chalk')
-// const clearAssets = require('./utils/clearAssets')
-// const packAssets = require('./utils/packAssets')
-// const compileAssets = require('./utils/compileAssets')
-const updateVersionFile = require('./utils/updateChangeLog')
-// const copyFile = require('./utils/copyFile')
-// const githubRelease = require('./utils/githubRelease')
-// const { parseArgv } = require('./utils')
+const fs = require('fs')
+const path = require('path')
 
-const run = async() => {
-  // const params = parseArgv(process.argv.slice(2))
-  // const bak = await updateVersionFile(params.ver)
-  await updateVersionFile(process.argv.slice(2)[0])
-  console.log(chalk.green('日志更新完成~'))
+exports.jp = (...p) => p.length ? path.join(__dirname, ...p) : __dirname
 
-  // try {
-  //   console.log(chalk.blue('Clearing assets...'))
-  //   await clearAssets()
-  //   console.log(chalk.green('Assets clear completed...'))
+exports.copyFile = (source, target) => new Promise((resolve, reject) => {
+  const rd = fs.createReadStream(source)
+  rd.on('error', err => {
+    reject(err)
+  })
+  const wr = fs.createWriteStream(target)
+  wr.on('error', err => {
+    reject(err)
+  })
+  wr.on('close', () => resolve())
+  rd.pipe(wr)
+})
 
-  //   // console.log(chalk.blue('Compileing assets...'))
-  //   // await compileAssets()
-  //   // console.log(chalk.green('Asset compiled successfully.'))
-
-  //   // console.log(chalk.blue('Building assets...'))
-  //   // await packAssets()
-  //   // console.log(chalk.green('Asset build successfully.'))
-
-  //   // console.log(chalk.blue('Copy files...'))
-  //   // await copyFile()
-  //   // console.log(chalk.green('Complete copy of all files.'))
-
-  //   // console.log(chalk.blue('Create release...'))
-  //   // await githubRelease(params)
-  //   // console.log(chalk.green('Release created.'))
-
-  // } catch (error) {
-  //   console.log(error)
-  //   console.log(chalk.red('程序发布失败'))
-  //   console.log(chalk.blue('正在还原版本信息'))
-  //   fs.writeFileSync(path.join(__dirname, './version.json'), bak.version_bak + '\n', 'utf-8')
-  //   fs.writeFileSync(path.join(__dirname, '../package.json'), bak.pkg_bak + '\n', 'utf-8')
-  //   console.log(chalk.blue('版本信息还原完成'))
-  // }
+/**
+ * 时间格式化
+ * @param {Date} d 格式化的时间
+ * @param {boolean} b 是否精确到秒
+ */
+exports.formatTime = (d, b) => {
+  const _date = d == null ? new Date() : typeof d == 'string' ? new Date(d) : d
+  const year = _date.getFullYear()
+  const month = fm(_date.getMonth() + 1)
+  const day = fm(_date.getDate())
+  if (!b) return year + '-' + month + '-' + day
+  return year + '-' + month + '-' + day + ' ' + fm(_date.getHours()) + ':' + fm(_date.getMinutes()) + ':' + fm(_date.getSeconds())
 }
 
+function fm(value) {
+  if (value < 10) return '0' + value
+  return value
+}
 
-run()
+exports.sizeFormate = size => {
+  // https://gist.github.com/thomseddon/3511330
+  if (!size) return '0 b'
+  let units = ['B', 'KiB', 'MiB', 'GiB', 'TiB']
+  let number = Math.floor(Math.log(size) / Math.log(1024))
+  return `${(size / Math.pow(1024, Math.floor(number))).toFixed(2)} ${units[number]}`
+}
+
+exports.parseArgv = argv => {
+  const params = {}
+  argv.forEach(item => {
+    const argv = item.split('=')
+    switch (argv[0]) {
+      case 'ver':
+        params.ver = argv[1]
+        break
+      case 'draft':
+        params.isDraft = argv[1] === 'true' || argv[1] === undefined
+        break
+      case 'prerelease':
+        params.isPrerelease = argv[1] === 'true' || argv[1] === undefined
+        break
+      case 'target_commitish':
+        params.target_commitish = argv[1]
+        break
+    }
+  })
+  return params
+}

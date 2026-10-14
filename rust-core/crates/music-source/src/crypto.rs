@@ -157,3 +157,84 @@ pub fn hex_encode(input: &[u8]) -> String {
 pub fn hex_decode(input: &str) -> Result<Vec<u8>, hex::FromHexError> {
     hex::decode(input)
 }
+
+/// SHA-1 哈希（小写 hex），输出口径与上游 native hashSHA1（MessageDigest）一致
+pub fn sha1_hex(input: &[u8]) -> String {
+    // 消息填充：0x80 + 0... + 64 位大端 bit 长度
+    let mut msg = input.to_vec();
+    let bit_len = (input.len() as u64).wrapping_mul(8);
+    msg.push(0x80);
+    while msg.len() % 64 != 56 {
+        msg.push(0);
+    }
+    msg.extend_from_slice(&bit_len.to_be_bytes());
+
+    let (mut h0, mut h1, mut h2, mut h3, mut h4) = (
+        0x67452301u32, 0xEFCDAB89u32, 0x98BADCFEu32, 0x10325476u32, 0xC3D2E1F0u32,
+    );
+
+    for chunk in msg.chunks_exact(64) {
+        let mut w = [0u32; 80];
+        for (i, word) in chunk.chunks_exact(4).enumerate() {
+            w[i] = u32::from_be_bytes([word[0], word[1], word[2], word[3]]);
+        }
+        for i in 16..80 {
+            w[i] = (w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16]).rotate_left(1);
+        }
+
+        let (mut a, mut b, mut c, mut d, mut e) = (h0, h1, h2, h3, h4);
+        for (i, word) in w.iter().enumerate() {
+            let (f, k) = match i {
+                0..=19 => ((b & c) | ((!b) & d), 0x5A827999u32),
+                20..=39 => (b ^ c ^ d, 0x6ED9EBA1u32),
+                40..=59 => ((b & c) | (b & d) | (c & d), 0x8F1BBCDCu32),
+                _ => (b ^ c ^ d, 0xCA62C1D6u32),
+            };
+            let temp = a
+                .rotate_left(5)
+                .wrapping_add(f)
+                .wrapping_add(e)
+                .wrapping_add(k)
+                .wrapping_add(*word);
+            e = d;
+            d = c;
+            c = b.rotate_left(30);
+            b = a;
+            a = temp;
+        }
+        h0 = h0.wrapping_add(a);
+        h1 = h1.wrapping_add(b);
+        h2 = h2.wrapping_add(c);
+        h3 = h3.wrapping_add(d);
+        h4 = h4.wrapping_add(e);
+    }
+
+    format!("{:08x}{:08x}{:08x}{:08x}{:08x}", h0, h1, h2, h3, h4)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sha1_hex() {
+        assert_eq!(
+            sha1_hex(b"abc"),
+            "a9993e364706816aba3e25717850c26c9cd0d89d"
+        );
+        assert_eq!(
+            sha1_hex(b""),
+            "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+        );
+        // 与上游 native MessageDigest 对中文 utf-8 的口径一致
+        assert_eq!(
+            sha1_hex("海阔天空".as_bytes()),
+            "52d1d8e0c2e002ad0d2896c97f46043cb96b3b1e"
+        );
+        // 超过一个分组（56 字节触发额外 padding 块）
+        assert_eq!(
+            sha1_hex(&[b'a'; 100]),
+            "7f9000257a4918d7072655ea468540cdcbd42e0c"
+        );
+    }
+}

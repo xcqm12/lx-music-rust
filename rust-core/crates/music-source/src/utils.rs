@@ -97,3 +97,159 @@ pub fn timestamp() -> u64 {
         .unwrap()
         .as_secs()
 }
+
+/// 版本特征词条，与上游 `src/utils/musicSdk/versionChars.ts` 保持一致
+/// （伴奏/现场/翻唱/混音等版本标识，跨源匹配时两侧必须一致）
+pub const VERSION_CHARS: &[&str] = &[
+    // 伴奏 / 无人声
+    "instrumental",
+    "inst",
+    "karaoke",
+    "backing track",
+    "minus one",
+    "minus vocal",
+    "no vocal",
+    "off vocal",
+    "vocal removed",
+    "伴奏",
+    "伴唱",
+    "卡拉ok",
+    "纯音乐",
+    "无人声",
+    "去人声",
+    "消音",
+    "オフボーカル",
+    "インスト",
+    "반주",
+    "노래방",
+    // 现场
+    "live",
+    "concert",
+    "tour",
+    "festival",
+    "stage",
+    "session",
+    "现场",
+    "演唱会",
+    "巡演",
+    "音乐会",
+    "ライブ",
+    "공연",
+    "라이브",
+    // 翻唱
+    "cover",
+    "tribute",
+    "rendition",
+    "remake",
+    "翻唱",
+    "致敬",
+    "改编",
+    "カバー",
+    "커버",
+    // 混音
+    "remix",
+    "mix",
+    "club",
+    "dance",
+    "extended",
+    "house",
+    "edm",
+    "dj",
+    "dub",
+    "trap",
+    "混音",
+    "重混",
+    "电音",
+    "リミックス",
+    "리믹스",
+    // 原声 / 不插电
+    "acoustic",
+    "unplugged",
+    "stripped",
+    "原声",
+    "不插电",
+    "アコースティック",
+    "어쿠스틱",
+    // Demo
+    "demo",
+    "小样",
+    "试听",
+    "デモ",
+    "데모",
+    // 速度变化
+    "slowed",
+    "slowed reverb",
+    "sped up",
+    "speed up",
+    "nightcore",
+    "慢速",
+    "加速",
+    "变速",
+    "ナイトコア",
+    // 特殊乐器版
+    "piano",
+    "guitar",
+    "orchestra",
+    "symphony",
+    "violin",
+    "钢琴",
+    "吉他",
+    "管弦乐",
+    "小提琴",
+    "ピアノ",
+    "ギター",
+    "피아노",
+    "기타",
+];
+
+/// 与上游 `matchMusicInfo` 的 `filterStr` 同口径：
+/// 去除空白与分隔符（` '|.，&"、()（）`~<>/[]|!！`）后转小写
+pub fn filter_str_lower(s: &str) -> String {
+    use std::sync::OnceLock;
+    static RE: OnceLock<regex::Regex> = OnceLock::new();
+    let re = RE.get_or_init(|| {
+        regex::Regex::new(r#"[\s'\.,，&"、()（）`~\-<>/\[\]!！|]"#).unwrap()
+    });
+    re.replace_all(s, "").to_lowercase()
+}
+
+/// 与上游 `isEqualsVersionMusicNameChar` 同口径：
+/// 两个名字对每个版本特征词条的包含结果必须完全一致，否则视为不同版本
+pub fn is_equals_version_chars(a: &str, b: &str) -> bool {
+    VERSION_CHARS.iter().all(|c| a.contains(c) == b.contains(c))
+}
+
+/// HTML 实体解码（对应上游 `decodeName` = he.decode 的常用子集）
+pub fn decode_html_entities(s: &str) -> String {
+    if !s.contains('&') {
+        return s.to_string();
+    }
+    let re = regex::Regex::new(r"&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z][a-zA-Z0-9]*);").unwrap();
+    re.replace_all(s, |caps: &regex::Captures| {
+        let ent = &caps[1];
+        if let Some(hex) = ent.strip_prefix("#x").or_else(|| ent.strip_prefix("#X")) {
+            u32::from_str_radix(hex, 16)
+                .ok()
+                .and_then(char::from_u32)
+                .map(|c| c.to_string())
+                .unwrap_or_else(|| caps[0].to_string())
+        } else if let Some(dec) = ent.strip_prefix('#') {
+            dec.parse::<u32>()
+                .ok()
+                .and_then(char::from_u32)
+                .map(|c| c.to_string())
+                .unwrap_or_else(|| caps[0].to_string())
+        } else {
+            match ent {
+                "amp" => "&".to_string(),
+                "lt" => "<".to_string(),
+                "gt" => ">".to_string(),
+                "quot" => "\"".to_string(),
+                "apos" => "'".to_string(),
+                "nbsp" => "\u{a0}".to_string(),
+                _ => caps[0].to_string(),
+            }
+        }
+    })
+    .to_string()
+}

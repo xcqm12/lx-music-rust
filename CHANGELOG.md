@@ -6,6 +6,34 @@ Project versioning adheres to [Semantic Versioning](http://semver.org/).
 Commit convention is based on [Conventional Commits](http://conventionalcommits.org/).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [1.9.1](https://github.com/xcqm12/lx-music-rust/compare/v1.8.6...v1.9.1) - 2026-10-14
+
+同步上游 lx-music-mobile v1.9.1：React Native 层跟进上游变更，Rust 音源核心同步移植对应的音源修复。
+
+### 新增
+
+- **清理缓存**：歌曲菜单新增 “清理缓存” 按钮，可用于清理 URL 缓存，当某首歌获取到了错误的歌曲链接时，可以使用该功能清理与其关联的歌曲 URL 缓存（上游 1.9.0）
+
+### 优化
+
+- 优化自动换源歌曲匹配机制（上游 1.9.0）
+- 优化 tx 推荐歌单列表（上游 1.9.1）
+
+### 修复
+
+- 修复 kg 搜索结果显示问题（上游 1.9.0）
+- 修复打开某些 kg 歌单时歌曲丢失的问题（上游 1.9.1）
+- 修复某些 tx 歌单打开失败的问题、tx 歌单翻页问题、tx 歌曲搜索失败的问题（上游 1.9.0）
+- 修复 mg 图片、歌词获取（上游 1.9.0）
+
+### Rust 音源
+
+- **kg**：同步搜索结果显示修复；歌词链路改用 mobi 二进制接口（tp=content 头 + zlib inflate + yeelion XOR 解码），移植 KRC 逐字歌词解析
+- **tx**：移植 zzcSign 搜索签名，修复歌单打开与搜索失败；歌词移植 QRC 3DES 解密与 parseTools 逐字解析
+- **mg**：搜索改用 v3 接口（md5 签名）；歌词、图片改经 resourceinfo 按 songId 现查（与上游 1.9.0 修复同口径），移植 MRC（XXTEA）解密与逐字解析
+- **kw**：全量移植上游 1.9.0 歌词链路（mlyric mobi.s 二进制、decodeLyric 解码、lrcTools 逐字重排）
+- 各源通过 node 全链路 probe 抓取真实响应生成 fixture，Rust 单测以 fixture 闭环验证
+
 ## [1.8.6](https://github.com/xcqm12/lx-music-rust/compare/v1.8.5...v1.8.6) - 2026-06-30
 
 React Native 文本渲染稳定性优化，修复多个潜在崩溃问题。

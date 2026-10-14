@@ -1,5 +1,7 @@
 pub mod sources;
 pub mod crypto;
+pub mod tx_lyric;
+pub mod kw_lyric;
 pub mod utils;
 
 use async_trait::async_trait;
@@ -74,8 +76,6 @@ impl MusicSourceManager {
     
     /// 注册默认音乐源
     fn register_default_sources(&self) {
-        use sources::*;
-        
         self.register(Arc::new(kw::KuwoSource::new(self.http_client.clone())));
         self.register(Arc::new(kg::KugouSource::new(self.http_client.clone())));
         self.register(Arc::new(tx::QQMusicSource::new(self.http_client.clone())));
@@ -195,21 +195,31 @@ impl MusicSourceManager {
     }
     
     /// 匹配两个音乐信息是否相同
+    /// 与上游 `matchMusicInfo` 同口径：名字先经 filterStr 过滤（去空白/分隔符）再转小写，
+    /// 且两侧对每个版本特征词条（伴奏/现场/翻唱等）的包含结果必须一致
     fn is_match(a: &MusicInfo, b: &MusicInfo) -> bool {
-        // 1. 歌曲名相似度
-        let name_match = utils::similarity(&a.name.to_lowercase(), &b.name.to_lowercase()) > 0.8;
-        
-        // 2. 歌手匹配（至少有一位相同）
+        let f_name_a = utils::filter_str_lower(&a.name);
+        let f_name_b = utils::filter_str_lower(&b.name);
+
+        // 1. 歌曲名：过滤后互相包含（isIncludesName）或相似度足够高
+        let name_match = !f_name_b.is_empty()
+            && (f_name_a.contains(&f_name_b) || f_name_b.contains(&f_name_a)
+                || utils::similarity(&f_name_a, &f_name_b) > 0.8);
+
+        // 2. 版本特征一致性（isEqualsVersionMusicNameChar）
+        let version_match = utils::is_equals_version_chars(&f_name_a, &f_name_b);
+
+        // 3. 歌手匹配（至少有一位相同）
         let singer_match = a.singer.iter().any(|s| {
             b.singer.iter().any(|bs| {
                 utils::similarity(&s.to_lowercase(), &bs.to_lowercase()) > 0.7
             })
         });
-        
-        // 3. 时长匹配（允许 ±5 秒误差）
+
+        // 4. 时长匹配（允许 ±5 秒误差，上游 isEqualsInterval 为 <=5）
         let duration_match = (a.interval as i32 - b.interval as i32).abs() <= 5;
-        
-        name_match && singer_match && duration_match
+
+        name_match && version_match && singer_match && duration_match
     }
 }
 
