@@ -57,10 +57,14 @@ jobs:
         shell: bash
         run: |
           TAG_NAME="v${PACKAGE_VERSION}"
+ copilot/fix-android-github-actions-job-again
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$TAG_NAME" >/dev/null 2>&1; then
+
           # checkout 默认不取 tags，须查远端，否则已存在的 tag 会 push 被拒
           if git ls-remote --exit-code --tags origin "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
             echo "Tag $TAG_NAME already exists remotely, skipping"
           else
+main
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
