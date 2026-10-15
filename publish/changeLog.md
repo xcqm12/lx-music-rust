@@ -1,18 +1,21 @@
-React Native 文本渲染稳定性优化，修复多个潜在崩溃问题。
+同步上游 lx-music-mobile v1.9.1，新增歌曲缓存清理入口，修复多个音源问题与设置页崩溃。
+
+### 新增
+
+- **歌曲菜单「清理缓存」按钮**：可用于清理错误的歌曲 URL 缓存（上游 1.9.0）
 
 ### 修复
 
-- **Text 组件崩溃**：修复 "Text strings must be rendered within a <Text> component" 崩溃问题，通过 SafeText 组件自动处理空值和非字符串类型
-- **设置页面显示异常**：修复设置页面显示 `[object Object]` 的问题，重构 `toSafeChildren` 函数保留 React 元素类型
-- **TrackPlayer 参数错误**：修复 `updateNowPlayingMetadata` 调用缺少 `isPlaying` 参数导致的崩溃
-- **移除自定义音源管理**：从设置页面移除自定义音源管理模块，清理相关路由和渲染逻辑
+- **资源缓存页崩溃**：修复打开「设置 → 其他 → 资源缓存」时应用崩溃的问题（RN 桥不支持 Long 类型返回值）
+- **歌词获取失败**：修复 kw/tx 歌词 zlib 解压与 mg 歌单解密问题（rust-core 音源修复）
+- **kg 歌单歌曲丢失**：修复打开某些 kg 歌单时歌曲丢失的问题（上游 1.9.1）
 
 ### 优化
 
-- **ESLint 规则**：配置 `react-native/no-raw-text` 规则，强制检查文本渲染，从根本上避免裸文本导致的崩溃
-- **Button 组件**：优化通用 Button 组件，自动用 Text 包裹字符串类型的 children
-- **文本安全处理**：`toSafeChildren` 函数支持 React 元素、数组、基本类型等多种 children 类型
+- **自动换源**：优化自动换源歌曲匹配机制（上游 1.9.0）
+- **tx 推荐歌单**：优化 tx 推荐歌单列表（上游 1.9.1）
 
 ### 构建
 
-- 完成正式版签名打包配置，支持 arm64-v8a、armeabi-v7a、x86_64、x86 四架构
+- **CI 全自动构建发布**：Rust 四架构库编译、APK 打包与 GitHub Release 发布全链路自动化
+- **正式签名**：恢复 SevenZeroMeowTeam 签名，Release APK 与历史版本签名一致

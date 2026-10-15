@@ -1,7 +1,11 @@
 {
-  "version": "1.8.6",
-  "desc": "React Native 文本渲染稳定性优化，修复多个潜在崩溃问题。\n\n修复\n- 修复 Text 组件崩溃问题，通过 SafeText 组件自动处理空值和非字符串类型\n- 修复设置页面显示 [object Object] 的问题，重构 toSafeChildren 函数保留 React 元素类型\n- 修复 TrackPlayer 参数错误导致的崩溃\n- 移除自定义音源管理模块\n\n优化\n- 配置 ESLint react-native/no-raw-text 规则，强制检查文本渲染\n- 优化通用 Button 组件，自动用 Text 包裹字符串类型的 children\n\n构建\n- 完成正式版签名打包配置，支持多架构",
+  "version": "1.9.1",
+  "desc": "同步上游 lx-music-mobile v1.9.1，新增歌曲缓存清理入口，修复多个音源问题与设置页崩溃。\n\n新增\n- 歌曲菜单新增「清理缓存」按钮，可用于清理错误的歌曲 URL 缓存\n\n修复\n- 修复打开「设置-其他-资源缓存」时应用崩溃的问题\n- 修复歌词获取失败的问题（kw/tx 歌词解压、mg 歌单解密）\n- 修复打开某些 kg 歌单时歌曲丢失的问题\n\n优化\n- 优化自动换源歌曲匹配机制与 tx 推荐歌单列表\n- CI 全自动构建发布：Rust 四架构库编译、APK 打包与 Release 发布\n\n构建\n- 恢复 SevenZeroMeowTeam 正式签名",
   "history": [
+    {
+      "version": "1.8.6",
+      "desc": "React Native 文本渲染稳定性优化，修复多个潜在崩溃问题。\n\n修复\n- 修复 Text 组件崩溃问题，通过 SafeText 组件自动处理空值和非字符串类型\n- 修复设置页面显示 [object Object] 的问题，重构 toSafeChildren 函数保留 React 元素类型\n- 修复 TrackPlayer 参数错误导致的崩溃\n- 移除自定义音源管理模块\n\n优化\n- 配置 ESLint react-native/no-raw-text 规则，强制检查文本渲染\n- 优化通用 Button 组件，自动用 Text 包裹字符串类型的 children\n\n构建\n- 完成正式版签名打包配置，支持多架构"
+    },
     {
       "version": "1.8.5",
       "desc": "Rust 核心模块重大更新，修复多个编译错误并完成多架构支持。\n\n修复\n- AES 加密模块：重写 crypto.rs，使用纯 aes crate 实现 ECB/CBC 加密解密\n- JNI 生命周期：为所有 JNI FFI 函数添加生命周期注解\n- 音频缓冲区：将 ringbuf 替换为 Vec 实现\n- 播放器模块：修复 playlist.rs 中 choose 方法调用\n- QQ 音乐源：修复 GUID 生成中整数溢出问题\n- 歌词 FFI：修复 to_jstring 和 from_json 函数的生命周期注解\n\n新增\n- SafeText 组件：新增安全文本组件，强制将 children 转换为字符串显示\n- PageContent 更新：使用 SafeText 替代普通 Text 组件\n\n构建\n- 完成 arm64-v8a、armeabi-v7a、x86_64、x86 四架构 Rust 库编译"
