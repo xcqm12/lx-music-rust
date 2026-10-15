@@ -172,6 +172,8 @@ jobs:
 
   Release:
     name: Release
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     # needs: [Android, Android_SL]
     needs: [Android]
