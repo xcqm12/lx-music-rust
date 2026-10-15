@@ -40,7 +40,8 @@ public class CacheModule extends ReactContextBaseJavaModule {
       fileSize += getDirSize(externalCacheDir);
     }
 
-    promise.resolve(fileSize);
+    // RN bridge 不支持 Long 类型参数，须传 String（上游 1.9.1 同款修复），JS 侧 Math.trunc 宽松转换
+    promise.resolve(String.valueOf(fileSize));
   }
 
   //清除缓存
