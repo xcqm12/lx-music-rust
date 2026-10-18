@@ -252,3 +252,5 @@ adb shell input keyevent 82
 ### 九、接受协议
 
 9.1 若你使用了本项目，即代表你接受本协议。
+
+[维云模型开放平台](https://vsllm.cc/)
