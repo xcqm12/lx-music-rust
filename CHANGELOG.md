@@ -6,6 +6,23 @@ Project versioning adheres to [Semantic Versioning](http://semver.org/).
 Commit convention is based on [Conventional Commits](http://conventionalcommits.org/).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [1.9.2](https://github.com/xcqm12/lx-music-rust/compare/v1.9.1...v1.9.2) - 2026-10-31
+
+同步上游 lx-music-mobile v1.9.2：修复 kg 歌单打开与歌曲丢失问题，默认禁用音频卸载。
+
+### 变更
+
+- **默认禁用音频卸载**：`player.isEnableAudioOffload` 默认值改为关闭，设置迁移时对已开启的用户一并禁用（上游 1.9.2）
+
+### 修复
+
+- **kg 歌单无法打开**：kg 歌单详情改用 tx CDN 接口（pubsongscdn get_other_list_file + global_collection_id），修复无法打开 kg 歌单的问题（上游 1.9.2）
+- **kg 歌单歌曲丢失**：修复打开某些 kg 歌单时歌曲丢失的问题（上游 1.9.2）
+
+### 构建
+
+- react-native-track-player 依赖升级（bfe3393 → d76fe8f，上游 1.9.2 同步）
+
 ## [1.9.1](https://github.com/xcqm12/lx-music-rust/compare/v1.8.6...v1.9.1) - 2026-10-14
 
 同步上游 lx-music-mobile v1.9.1：React Native 层跟进上游变更，Rust 音源核心同步移植对应的音源修复。
