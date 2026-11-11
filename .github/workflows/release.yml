@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - lx-music-rust-old
 
 jobs:
   Android:
@@ -33,11 +34,13 @@ jobs:
           echo "ANDROID_NDK_HOME=${ANDROID_NDK_HOME}" >> $GITHUB_ENV
           
           cargo install cargo-ndk
-          
-          cd rust-core
-          cargo ndk -t armeabi-v7a -t arm64-v8a -t x86 -t x86_64 -o ../android/app/src/main/jniLibs build --release
-          
-          cd ../android
+
+          # app 内声明 JNI 符号的是 cn.toside.music.mobile.RustBridge（对应 src/rust 的导出），
+          # 必须编译 src/rust；rust-core 的符号（com_lx_music_core_RustCoreBridge_*）无 Kotlin 声明
+          cd src/rust
+          cargo ndk -t armeabi-v7a -t arm64-v8a -t x86 -t x86_64 -o ../../android/app/src/main/jniLibs build --release
+
+          cd ../../android
           chmod +x gradlew
           if [ -n "${{ secrets.KEYSTORE_STORE_FILE_BASE64 }}" ] && [ -n "${{ secrets.KEYSTORE_STORE_FILE }}" ]; then
             echo "${{ secrets.KEYSTORE_STORE_FILE_BASE64 }}" | base64 --decode > app/${{ secrets.KEYSTORE_STORE_FILE }}
@@ -45,6 +48,21 @@ jobs:
             rm -f app/${{ secrets.KEYSTORE_STORE_FILE }}
           else
             ./gradlew assembleRelease --no-daemon
+          fi
+
+      # 防签名静默回退：secrets 任一为空时 build.gradle 会回退 debug.keystore（CN=Android Debug），
+      # 覆盖安装已发布的 SevenZeroMeowTeam 版本会失败，必须在此拦截
+      - name: Verify APK signature (guard against silent debug fallback)
+        shell: bash
+        run: |
+          APKSIGNER="$(ls -1 "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)"
+          APK="$(ls android/app/build/outputs/apk/release/*-armeabi-v7a.apk | head -1)"
+          echo "Verifying: $APK"
+          CERTS="$("$APKSIGNER" verify --print-certs "$APK")"
+          echo "$CERTS"
+          if echo "$CERTS" | grep -qi "Android Debug"; then
+            echo "::error::Release APK 使用了 debug 签名（secrets 缺失导致回退），拒绝发布"
+            exit 1
           fi
 
       # Push tag to GitHub if package.json version's tag is not tagged

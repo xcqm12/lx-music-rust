@@ -1,7 +1,9 @@
 // import { requestStoragePermission } from '@/utils/common'
-import { temporaryDirectoryPath, existsFile, appendFile, unlink, writeFile, readFile } from '@/utils/fs'
+import { temporaryDirectoryPath, privateStorageDirectoryPath, existsFile, appendFile, unlink, writeFile, readFile, readDir } from '@/utils/fs'
 
 const logPath = temporaryDirectoryPath + '/error.log'
+// CrashSaver.kt 写入的原生崩溃目录（filesDir/crash）
+const crashDirPath = privateStorageDirectoryPath + '/crash'
 
 const logTools = {
   tempLog: [] as Array<{ time: string, type: 'LOG' | 'WARN' | 'ERROR', text: string }> | null,
@@ -14,12 +16,38 @@ const logTools = {
       let isExists = await existsFile(logPath)
       // console.log(isExists)
       if (!isExists) await writeFile(logPath, '')
+      await mergeCrashLogs()
       if (this.tempLog?.length) this.writeLog(this.tempLog.map(m => `${m.time} ${m.type} ${m.text}`).join('\n----lx log----\n'))
       this.tempLog = null
     } catch (err) {
       console.log(err)
     }
   },
+}
+
+/**
+ * 把原生层崩溃日志（CrashSaver 落盘的 filesDir/crash/*.txt）并入 error.log，
+ * 让“设置-错误日志”可以直接查看与导出；合并成功后删除源文件。
+ */
+async function mergeCrashLogs() {
+  try {
+    const files = await readDir(crashDirPath)
+    if (!files?.length) return
+    const crashFiles = files.filter(f => f.isFile && f.name.startsWith('crash-')).sort((a, b) => a.name.localeCompare(b.name))
+    for (const file of crashFiles) {
+      try {
+        const content = await readFile(file.path)
+        if (content?.length) {
+          await appendFile(logPath, '\n----lx log----\n[CRASH] ' + content.trim())
+        }
+        await unlink(file.path)
+      } catch (err) {
+        console.log('merge crash log failed:', file.name, err)
+      }
+    }
+  } catch (err) {
+    // 目录不存在等，忽略
+  }
 }
 
 export const init = async() => {

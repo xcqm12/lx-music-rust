@@ -63,6 +63,8 @@ public class MainApplication extends NavigationApplication {
 
   @Override
   public void onCreate() {
+    // 在任何 RN 基础设施初始化之前安装崩溃落盘，链式转发不破坏已有处理器
+    CrashSaver.INSTANCE.install(this);
     super.onCreate();
 
     if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {

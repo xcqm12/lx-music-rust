@@ -8,9 +8,13 @@ import { Navigation } from 'react-native-navigation'
 import { toast } from '@/utils/tools'
 
 const localVersionInfo = {
-  version: '1.9.2',
-  desc: '同步上游 v1.9.2，修复 kg 歌单打开与歌曲丢失问题。\n\n【修复】\n- 修复无法打开 kg 歌单的问题\n- 修复打开某些 kg 歌单时歌曲丢失的问题\n\n【变更】\n- 默认禁用音频卸载（升级用户自动关闭）\n\n【构建】\n- react-native-track-player 依赖升级（上游 1.9.2）',
+  version: '1.9.3',
+  desc: '车机（Android 5.x/6.x 低内存设备）闪退加固：崩溃日志可导出，修复潜在闪退点。\n\n【优化】\n- 崩溃日志落盘：原生未捕获异常同步写入本地，下次启动自动并入「设置-错误日志」，含机型/系统/内存信息，便于车机等无法抓 logcat 的场景反馈\n- 启用 largeHeap，缓解低内存设备图片/列表导致的内存不足\n- 播放器初始化失败自动去掉可选参数降级重试\n\n【修复】\n- Rust 库缺失不再闪退：加载失败仅停用 Rust 功能并记录日志，调用层捕获所有 Throwable\n- Rust JNI panic 防护：全部导出函数加 catch_unwind，不再导致进程崩溃\n\n【构建】\n- CI Rust 四架构库改用与 app JNI 符号匹配的 src/rust 编译，release 库 strip 减小体积\n- CI 增加 APK 签名校验，防止 secrets 缺失时静默回退 debug 签名导致无法覆盖安装',
   history: [
+    {
+      version: '1.9.2',
+      desc: '同步上游 v1.9.2，修复 kg 歌单打开与歌曲丢失问题。\n\n【修复】\n- 修复无法打开 kg 歌单的问题\n- 修复打开某些 kg 歌单时歌曲丢失的问题\n\n【变更】\n- 默认禁用音频卸载（升级用户自动关闭）\n\n【构建】\n- react-native-track-player 依赖升级（上游 1.9.2）',
+    },
     {
       version: '1.9.1',
       desc: '同步上游 v1.9.1，新增歌曲缓存清理入口，修复多个音源问题与设置页崩溃。\n\n【新增】\n- 歌曲菜单新增「清理缓存」按钮，可用于清理错误的歌曲 URL 缓存\n\n【修复】\n- 修复打开「设置-其他-资源缓存」时应用崩溃的问题\n- 修复歌词获取失败的问题（kw/tx 歌词解压、mg 歌单解密）\n- 修复打开某些 kg 歌单时歌曲丢失的问题\n\n【优化】\n- 优化自动换源歌曲匹配机制与 tx 推荐歌单列表\n- CI 全自动构建发布：Rust 四架构库编译、APK 打包与 Release 发布\n\n【构建】\n- 恢复 SevenZeroMeowTeam 正式签名',

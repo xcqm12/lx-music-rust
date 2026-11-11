@@ -29,7 +29,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
         try {
             val result = RustBridge.initEngine()
             promise.resolve(result)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("INIT_ERROR", e.message, e)
         }
     }
@@ -39,7 +39,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
         try {
             val result = RustBridge.isInitialized()
             promise.resolve(result)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("INIT_CHECK_ERROR", e.message, e)
         }
     }
@@ -53,7 +53,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
         try {
             val result = RustBridge.loadSource(sourceId, sourceName, sourceCode)
             promise.resolve(result)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("LOAD_SOURCE_ERROR", e.message, e)
         }
     }
@@ -63,7 +63,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
         try {
             val result = RustBridge.searchMusic(sourceId, keyword)
             promise.resolve(result)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("SEARCH_ERROR", e.message, e)
         }
     }
@@ -73,7 +73,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
         try {
             val result = RustBridge.getMusicUrl(sourceId, musicId, quality)
             promise.resolve(result)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("GET_URL_ERROR", e.message, e)
         }
     }
@@ -83,7 +83,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
         try {
             val result = RustBridge.getLyric(sourceId, musicId)
             promise.resolve(result)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("GET_LYRIC_ERROR", e.message, e)
         }
     }
@@ -93,7 +93,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
         try {
             val result = RustBridge.getPic(sourceId, musicId)
             promise.resolve(result)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("GET_PIC_ERROR", e.message, e)
         }
     }
@@ -105,7 +105,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
             promise.resolve(Arguments.createArray().apply {
                 result.forEach { pushString(it) }
             })
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("GET_SOURCES_ERROR", e.message, e)
         }
     }
@@ -118,8 +118,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun playerPlay() {
         try {
             RustBridge.playerPlay()
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -127,8 +128,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun playerPause() {
         try {
             RustBridge.playerPause()
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -136,8 +138,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun playerStop() {
         try {
             RustBridge.playerStop()
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -145,8 +148,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun playerToggle() {
         try {
             RustBridge.playerToggle()
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -154,8 +158,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun playerNext() {
         try {
             RustBridge.playerNext()
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -163,8 +168,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun playerPrev() {
         try {
             RustBridge.playerPrev()
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -172,8 +178,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun playerSeek(timeMs: Double) {
         try {
             RustBridge.playerSeek(timeMs.toLong())
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -181,8 +188,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun playerSetVolume(volume: Float) {
         try {
             RustBridge.playerSetVolume(volume)
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -190,8 +198,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun playerSetPlaybackRate(rate: Float) {
         try {
             RustBridge.playerSetPlaybackRate(rate)
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -199,8 +208,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun playerSetPlayMode(mode: Int) {
         try {
             RustBridge.playerSetPlayMode(mode)
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -209,7 +219,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
         try {
             val result = RustBridge.playerSetPlaylist(playlistJson)
             promise.resolve(result)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("SET_PLAYLIST_ERROR", e.message, e)
         }
     }
@@ -218,8 +228,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun playerPlayAtIndex(index: Int) {
         try {
             RustBridge.playerPlayAtIndex(index)
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -228,7 +239,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
         try {
             val result = RustBridge.playerGetState()
             promise.resolve(result)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("GET_STATE_ERROR", e.message, e)
         }
     }
@@ -238,7 +249,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
         try {
             val result = RustBridge.playerAddToPlaylist(musicJson)
             promise.resolve(result)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("ADD_TO_PLAYLIST_ERROR", e.message, e)
         }
     }
@@ -247,8 +258,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun playerRemoveFromPlaylist(index: Int) {
         try {
             RustBridge.playerRemoveFromPlaylist(index)
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -256,8 +268,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun playerClearPlaylist() {
         try {
             RustBridge.playerClearPlaylist()
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -269,8 +282,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun lyricSetLyric(lyric: String, translation: String) {
         try {
             RustBridge.lyricSetLyric(lyric, translation)
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -279,7 +293,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
         try {
             val result = RustBridge.lyricGetCurrentLine(timeMs.toLong())
             promise.resolve(result)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("GET_CURRENT_LINE_ERROR", e.message, e)
         }
     }
@@ -289,7 +303,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
         try {
             val result = RustBridge.lyricGetLineIndex(timeMs.toLong())
             promise.resolve(result)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("GET_LINE_INDEX_ERROR", e.message, e)
         }
     }
@@ -299,7 +313,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
         try {
             val result = RustBridge.lyricGetLines()
             promise.resolve(result)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("GET_LINES_ERROR", e.message, e)
         }
     }
@@ -308,8 +322,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun lyricSetPlaybackRate(rate: Float) {
         try {
             RustBridge.lyricSetPlaybackRate(rate)
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -317,8 +332,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun lyricToggleTranslation(show: Boolean) {
         try {
             RustBridge.lyricToggleTranslation(show)
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 
@@ -327,7 +343,7 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
         try {
             val result = RustBridge.lyricIsShowTranslation()
             promise.resolve(result)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             promise.reject("IS_SHOW_TRANSLATION_ERROR", e.message, e)
         }
     }
@@ -336,8 +352,9 @@ class LXMusicCoreModule(reactContext: ReactApplicationContext) : ReactContextBas
     fun lyricClear() {
         try {
             RustBridge.lyricClear()
-        } catch (e: Exception) {
-            // Log error
+        } catch (e: Throwable) {
+            // 捕获 Throwable：库缺失时抛出的 UnsatisfiedLinkError 是 Error 不是 Exception，必须拦住避免 RN 线程死亡
+            android.util.Log.w("LXMusicCore", "rust call failed (available=${RustBridge.isAvailable})", e)
         }
     }
 }

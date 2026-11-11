@@ -1,4 +1,4 @@
-import { Alert } from 'react-native'
+import { Alert, Platform } from 'react-native'
 // import { exitApp } from '@/utils/common'
 import { setJSExceptionHandler, setNativeExceptionHandler } from 'react-native-exception-handler'
 import { log } from '@/utils/log'
@@ -36,7 +36,9 @@ if (process.env.NODE_ENV !== 'development') {
   setJSExceptionHandler(errorHandler)
 
   setNativeExceptionHandler((errorString) => {
-    log.error(errorString)
+    // 设备信息尽力而为地记入日志（原生崩溃时 JS 落盘不一定来得及，CrashSaver 负责同步兜底）
+    const deviceInfo = `app=${process.versions?.app ?? ''} api=${Platform.Version} ${new Date().toLocaleString()}`
+    log.error(`[NATIVE CRASH] ${deviceInfo}\n${errorString}`)
     console.log('+++++', errorString, '+++++')
   }, false)
 }

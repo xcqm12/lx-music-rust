@@ -1,4 +1,20 @@
-同步上游 lx-music-mobile v1.9.2，修复 kg 歌单打开与歌曲丢失问题，默认禁用音频卸载。
+车机（Android 5.x/6.x 低内存设备）闪退加固：崩溃日志可导出，修复潜在闪退点。
+
+### 优化
+
+- **崩溃日志落盘**：原生未捕获异常同步写入本地，下次启动自动并入“设置-错误日志”，含机型/系统/内存信息，便于车机等无法抓 logcat 的场景反馈问题
+- **低内存适配**：启用 largeHeap，缓解低内存设备图片/列表导致的内存不足
+- **播放器初始化容错**：setupPlayer 失败时自动降级参数重试
+
+### 修复
+
+- **Rust 库缺失不再闪退**：原生库加载改为可恢复式，失败仅停用 Rust 功能并记录日志；JNI 调用层捕获所有 Throwable，拦截 UnsatisfiedLinkError
+- **Rust JNI panic 防护**：全部 JNI 导出加 catch_unwind，Rust 层异常不再导致进程崩溃
+
+### 构建
+
+- **Rust 四架构库修正**：CI 改为编译与 app JNI 符号匹配的 src/rust，release 库启用 strip 减小体积
+- **签名校验**：CI 构建后校验 APK 签名，防止 secrets 缺失时静默回退 debug 签名导致无法覆盖安装
 
 ### 修复
 

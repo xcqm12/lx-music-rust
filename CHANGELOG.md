@@ -6,6 +6,26 @@ Project versioning adheres to [Semantic Versioning](http://semver.org/).
 Commit convention is based on [Conventional Commits](http://conventionalcommits.org/).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [1.9.3](https://github.com/xcqm12/lx-music-rust/compare/v1.9.2...v1.9.3) - 2026-11-11
+
+车机（Android 5.x/6.x 低内存设备）闪退加固：崩溃日志可导出，修复潜在闪退点。
+
+### 优化
+
+- **崩溃日志落盘**：新增 CrashSaver 同步落盘原生未捕获异常（含机型/系统/ABI/内存信息），启动时自动并入错误日志，可通过“设置-错误日志”查看导出，便于车机等无法抓 logcat 的场景反馈问题
+- **低内存适配**：启用 `largeHeap`；播放器初始化失败自动去掉可选参数降级重试
+
+### 修复
+
+- **Rust 库缺失不再闪退**：原生库加载改为可恢复式（失败仅停用 Rust 功能并记录日志，不再抛 Error 毒化类初始化）；LXMusicCore 全部方法捕获 Throwable，拦截 UnsatisfiedLinkError
+- **Rust JNI panic 防护**：全部 36 个 JNI 导出加 `catch_unwind`，Rust 层 panic 不再导致进程 abort
+- **播放器初始化容错**：`setupPlayer` 失败时降级参数重试，避免老设备播放不可用
+
+### 构建
+
+- **CI Rust 四架构库修正**：release.yml 改为编译 src/rust（JNI 符号与 app 的 `cn.toside.music.mobile.RustBridge` 声明匹配；此前编译的 rust-core 符号无 Kotlin 声明方），release 库启用 `strip = true` 减小体积
+- **签名防回退**：CI 构建后校验 APK 签名，secrets 缺失静默回退 debug 签名时直接失败，避免发布无法覆盖安装的包
+
 ## [1.9.2](https://github.com/xcqm12/lx-music-rust/compare/v1.9.1...v1.9.2) - 2026-10-31
 
 同步上游 lx-music-mobile v1.9.2：修复 kg 歌单打开与歌曲丢失问题，默认禁用音频卸载。

@@ -9,9 +9,41 @@ package cn.toside.music.mobile
  * Architecture: Java -> JNI -> Rust .so
  */
 object RustBridge {
-    
+
+    /**
+     * 可恢复式的原生库加载：
+     * - 库缺失（如个别 ABI 未打包）或加载失败时不再抛出 Error 导致调用线程崩溃；
+     * - Kotlin object 初始化失败会被 JVM 永久毒化（后续访问一直抛
+     *   ExceptionInInitializerError），因此这里在 init 内部吞掉异常，
+     *   由调用方通过 [isAvailable] 判断并降级。
+     */
+    @Volatile
+    var isAvailable: Boolean = false
+        private set
+
+    private val loadLock = Any()
+
+    @Volatile
+    private var loadAttempted = false
+
+    private fun ensureLoaded(): Boolean {
+        if (loadAttempted) return isAvailable
+        synchronized(loadLock) {
+            if (loadAttempted) return isAvailable
+            loadAttempted = true
+            try {
+                System.loadLibrary("lx_music_core")
+                isAvailable = true
+            } catch (t: Throwable) {
+                isAvailable = false
+                android.util.Log.e("RustBridge", "Failed to load liblx_music_core.so, rust features disabled", t)
+            }
+        }
+        return isAvailable
+    }
+
     init {
-        System.loadLibrary("lx_music_core")
+        ensureLoaded()
     }
 
     // ========================================================================

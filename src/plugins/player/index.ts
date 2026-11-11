@@ -27,14 +27,20 @@ const initial = async({ volume, playRate, cacheSize, isHandleAudioFocus, isEnabl
   global.lx.playerStatus.isIniting = true
   console.log('Cache Size', cacheSize * 1024)
   await migratePlayerCache()
-  await TrackPlayer.setupPlayer({
-    maxCacheSize: cacheSize * 1024,
-    maxBuffer: 1000,
-    waitForBuffer: true,
-    handleAudioFocus: isHandleAudioFocus,
-    audioOffload: isEnableAudioOffload,
-    autoUpdateMetadata: false,
-  })
+  try {
+    await TrackPlayer.setupPlayer({
+      maxCacheSize: cacheSize * 1024,
+      maxBuffer: 1000,
+      waitForBuffer: true,
+      handleAudioFocus: isHandleAudioFocus,
+      audioOffload: isEnableAudioOffload,
+      autoUpdateMetadata: false,
+    })
+  } catch (err) {
+    // 兼容性降级：老设备（车机等）可能不支持部分参数，去掉可选参数重试一次，避免初始化失败导致播放不可用
+    console.warn('setupPlayer with full options failed, retry with minimal options:', err)
+    await TrackPlayer.setupPlayer()
+  }
   global.lx.playerStatus.isInitialized = true
   global.lx.playerStatus.isIniting = false
   await updateOptions()
