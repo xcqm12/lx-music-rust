@@ -1,5 +1,6 @@
 package cn.toside.music.mobile
 
+import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -30,13 +31,18 @@ object AppIntegrity {
       if (!actual.equals(expected, ignoreCase = true)) {
         Log.e(TAG, "signature mismatch, self-destructing")
         try {
-          // 清空数据由 system_server 完成后自动终止进程；这里再兜底杀一次
-          context.clearApplicationUserData()
+          // 清理由 system_server 执行，完成后系统会自行终止进程
+          val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+          val cleared = am?.clearApplicationUserData() ?: false
+          if (!cleared) {
+            Process.killProcess(Process.myPid())
+            Runtime.getRuntime().exit(0)
+          }
         } catch (t: Throwable) {
-          // 某些系统可能拒绝清理，继续退出
+          // 某些系统可能拒绝清理，兜底退出
+          Process.killProcess(Process.myPid())
+          Runtime.getRuntime().exit(0)
         }
-        Process.killProcess(Process.myPid())
-        Runtime.getRuntime().exit(0)
       }
     } catch (t: Throwable) {
       // 校验异常不阻塞启动
