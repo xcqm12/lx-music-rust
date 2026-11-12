@@ -90,7 +90,7 @@ export const requestIgnoreBatteryOptimization = async() => new Promise<boolean>(
     if (state != 'active') return
     subscription.remove()
     setTimeout(() => {
-      void isIgnoringBatteryOptimization().then(resolve)
+      void isNotificationsEnabled().then(resolve)
     }, 1000)
   })
   UtilsModule.requestIgnoreBatteryOptimization().then((result: boolean) => {
