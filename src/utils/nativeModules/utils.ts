@@ -99,3 +99,18 @@ export const requestIgnoreBatteryOptimization = async() => new Promise<boolean>(
     resolve(false)
   })
 })
+
+export interface SshReportConfig {
+  host: string
+  port: number
+  username: string
+  /** 服务器主机公钥 SHA-256（base64 无填充，OpenSSH 风格），为空则拒绝连接 */
+  hostKeySha256: string
+  privateKey: string
+  timeout?: number
+}
+
+/** SSH 中转上报：执行服务端固定命令 report，stdin 传 JSON，返回远端退出码与输出 */
+export const reportViaSsh = async(config: SshReportConfig, payload: string): Promise<{ code: number, output: string, stderr?: string }> => {
+  return UtilsModule.reportViaSsh(config, payload)
+}

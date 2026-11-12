@@ -5,6 +5,8 @@ apply plugin: "com.facebook.react"
 import com.android.build.OutputFile
 import groovy.json.JsonSlurper
 import org.apache.tools.ant.taskdefs.condition.Os
+import java.security.KeyStore
+import java.security.MessageDigest
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -91,6 +93,61 @@ def reactNativeArchitectures() {
     return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
 }
 
+/**
+ * 计算本次构建实际使用的签名证书 SHA-256（冒号分隔小写十六进制），注入 BuildConfig
+ * 供运行时防重打包校验（AppIntegrity.kt）：APK 被他人重签名后运行时指纹必然不一致。
+ * 构建期取不到证书时返回空串，运行时据此放行（避免误伤）。
+ */
+def signingCertSha256() {
+    String storePath = null
+    String storePass = null
+    String alias = null
+    if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
+        storePath = project.property('MYAPP_UPLOAD_STORE_FILE')
+        storePass = project.property('MYAPP_UPLOAD_STORE_PASSWORD')
+        alias = project.property('MYAPP_UPLOAD_KEY_ALIAS')
+    } else {
+        def propsFile = rootProject.file("keystore.properties")
+        if (propsFile.exists()) {
+            def props = new Properties()
+            propsFile.withInputStream { props.load(it) }
+            storePath = props['storeFile']
+            storePass = props['storePassword']
+            alias = props['keyAlias']
+        } else {
+            // 与 signingConfigs.release 的回退逻辑一致
+            storePath = 'debug.keystore'
+            storePass = 'android'
+            alias = 'androiddebugkey'
+        }
+    }
+    try {
+        if (storePath == null) return ''
+        def storeFile = file(storePath)
+        if (!storeFile.exists()) return ''
+        def keystore = null
+        for (String type in ['PKCS12', 'JKS']) {
+            try {
+                def ks = KeyStore.getInstance(type)
+                new FileInputStream(storeFile).withCloseable { ks.load(it, storePass.toCharArray()) }
+                keystore = ks
+                break
+            } catch (Exception ignored) {}
+        }
+        if (keystore == null) return ''
+        def cert = alias != null ? keystore.getCertificate(alias) : null
+        if (cert == null) {
+            def aliases = keystore.aliases()
+            if (aliases.hasMoreElements()) cert = keystore.getCertificate(aliases.nextElement())
+        }
+        if (cert == null) return ''
+        return MessageDigest.getInstance('SHA-256').digest(cert.encoded)
+                .collect { String.format('%02x', it) }.join(':')
+    } catch (Exception ignored) {
+        return ''
+    }
+}
+
 // Get version number
 def getNpmPackageJson() {
     def inputFile = new File(rootProject.projectDir.parentFile, "package.json")
@@ -123,6 +180,9 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode verCode
         versionName verName
+
+        // 运行时签名校验指纹（AppIntegrity.kt 防重打包自毁）
+        buildConfigField "String", "SIGNING_CERT_SHA256", "\"${signingCertSha256()}\""
 
         ndk {
             abiFilters reactNativeArchitectures()
@@ -214,6 +274,10 @@ dependencies {
     // implementation "androidx.javascriptengine:javascriptengine:1.0.0-alpha07"
     // implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation 'wang.harlon.quickjs:wrapper-android:2.4.0'
+
+    // 错误日志 SSH 中转上传；老版本 Android 无内置 Ed25519，需 eddsa 库
+    implementation('com.github.mwiede:jsch:0.2.17')
+    implementation('net.i2p.crypto:eddsa:0.3.0')
 
   if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

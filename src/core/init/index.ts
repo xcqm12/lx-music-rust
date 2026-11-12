@@ -13,6 +13,7 @@ import commonActions from '@/store/common/action'
 import settingState from '@/store/setting/state'
 import { checkUpdate } from '@/core/version'
 import { bootLog } from '@/utils/bootLog'
+import { initErrorReport } from '@/utils/errorReport'
 import { cheatTip } from '@/utils/tools'
 
 let isFirstPush = true
@@ -62,6 +63,11 @@ export default async() => {
 
   void initSync(setting)
   bootLog('Sync inited.')
+
+  // 错误日志自动上报：需在 app.ts 的 initLog 之后（监听 log.error），
+  // 启动检查内部自带延迟，不会阻塞初始化
+  initErrorReport()
+  bootLog('Error report inited.')
 
   // syncSetting()
 

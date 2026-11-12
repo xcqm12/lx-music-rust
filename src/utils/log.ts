@@ -62,6 +62,15 @@ export const clearLogs = async() => {
   return unlink(logPath).then(async() => writeFile(logPath, ''))
 }
 
+/**
+ * 错误监听钩子：errorReport 通过它感知 log.error 事件（保持 log.ts → errorReport 单向依赖）。
+ */
+type LogErrorListener = (msg: string) => void
+let logErrorListener: LogErrorListener | null = null
+export const setLogErrorListener = (listener: LogErrorListener | null) => {
+  logErrorListener = listener
+}
+
 export const log = {
   info(...msgs: any[]) {
     // console.info(...msgs)
@@ -87,6 +96,11 @@ export const log = {
       logTools.tempLog.push({ type: 'ERROR', time, text: msg })
     } else {
       logTools.writeLog(`${time} ERROR ${msg}`)
+    }
+    try {
+      logErrorListener?.(msg)
+    } catch (err) {
+      console.log(err)
     }
   },
 }

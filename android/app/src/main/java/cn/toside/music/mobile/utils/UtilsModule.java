@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
+import android.util.Base64;
 import android.util.Log;
 import android.view.Window;
 import android.view.WindowManager;
@@ -24,11 +25,22 @@ import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableNativeArray;
 
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.HostKey;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -378,6 +390,86 @@ public class UtilsModule extends ReactContextBaseJavaModule {
         promise.resolve(result);
       } catch (Exception e) {
         promise.reject("ERROR", e);
+      }
+    }).start();
+  }
+
+  /**
+   * 错误日志 SSH 中转上报：以密钥认证连接中转服务器执行固定命令 report，
+   * 通过 stdin 传 JSON（title/body），服务端转发到 GitHub Issues。
+   * config: { host, port, username, hostKeySha256, privateKey, timeout }
+   * hostKeySha256 为服务器主机公钥的 SHA-256（base64 无填充，OpenSSH 风格），
+   * 连接后先比对指纹再发送数据，为空或不符一律拒绝（防 MITM）。
+   * resolve: { code, output }（code 为远端命令退出码，-1 表示未取到）
+   */
+  @ReactMethod
+  public void reportViaSsh(ReadableMap config, String payload, Promise promise) {
+    new Thread(() -> {
+      Session session = null;
+      ChannelExec channel = null;
+      try {
+        String host = config.getString("host");
+        int port = config.hasKey("port") ? config.getInt("port") : 22;
+        String username = config.getString("username");
+        String expectedFingerprint = config.getString("hostKeySha256");
+        String privateKey = config.getString("privateKey");
+        int timeout = config.hasKey("timeout") ? config.getInt("timeout") : 20000;
+        if (host == null || username == null || privateKey == null ||
+            expectedFingerprint == null || expectedFingerprint.isEmpty()) {
+          promise.reject("ERR_CONFIG", "missing host/username/privateKey/hostKeySha256");
+          return;
+        }
+
+        JSch jsch = new JSch();
+        jsch.addIdentity("lx-report", privateKey.getBytes(StandardCharsets.UTF_8), null, null);
+        session = jsch.getSession(username, host, port);
+        // 先放行握手，连接成功后立即人工比对指纹，不匹配即断开
+        session.setConfig("StrictHostKeyChecking", "no");
+        session.setTimeout(timeout);
+        session.connect(timeout);
+
+        HostKey hostKey = session.getHostKey();
+        if (hostKey == null || hostKey.getKey() == null) {
+          promise.reject("ERR_HOSTKEY", "server did not present a host key");
+          return;
+        }
+        byte[] blob = Base64.decode(hostKey.getKey(), Base64.DEFAULT);
+        byte[] digest = MessageDigest.getInstance("SHA-256").digest(blob);
+        String fingerprint = Base64.encodeToString(digest, Base64.NO_WRAP | Base64.NO_PADDING);
+        if (!expectedFingerprint.equals(fingerprint)) {
+          promise.reject("ERR_HOSTKEY_MISMATCH", "host key fingerprint mismatch (possible MITM)");
+          return;
+        }
+
+        channel = (ChannelExec) session.openChannel("exec");
+        channel.setCommand("report");
+        channel.setInputStream(new ByteArrayInputStream(payload.getBytes(StandardCharsets.UTF_8)));
+        ByteArrayOutputStream errStream = new ByteArrayOutputStream();
+        channel.setErrStream(errStream);
+        channel.connect(timeout);
+
+        InputStream is = channel.getInputStream();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buf = new byte[4096];
+        int n;
+        long deadline = System.currentTimeMillis() + timeout;
+        while ((n = is.read(buf)) >= 0) {
+          out.write(buf, 0, n);
+          if (out.size() > 65536) break;
+          if (System.currentTimeMillis() > deadline) break;
+        }
+        int code = channel.isClosed() ? channel.getExitStatus() : -1;
+
+        WritableMap result = Arguments.createMap();
+        result.putInt("code", code);
+        result.putString("output", out.toString("UTF-8").trim());
+        if (errStream.size() > 0) result.putString("stderr", errStream.toString("UTF-8").trim());
+        promise.resolve(result);
+      } catch (Exception e) {
+        promise.reject("ERR_SSH", e.getMessage());
+      } finally {
+        if (channel != null) channel.disconnect();
+        if (session != null) session.disconnect();
       }
     }).start();
   }

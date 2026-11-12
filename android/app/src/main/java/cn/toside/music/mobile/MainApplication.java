@@ -63,6 +63,9 @@ public class MainApplication extends NavigationApplication {
 
   @Override
   public void onCreate() {
+    // 防重打包自毁：release 包被第三方重签名时清空数据并退出（debug 构建跳过）。
+    // 必须先于一切初始化执行，避免被篡改的包写入任何状态。
+    AppIntegrity.INSTANCE.check(this);
     // 在任何 RN 基础设施初始化之前安装崩溃落盘，链式转发不破坏已有处理器
     CrashSaver.INSTANCE.install(this);
     super.onCreate();

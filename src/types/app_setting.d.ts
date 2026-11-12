@@ -77,6 +77,11 @@ declare global {
       'common.alwaysKeepStatusbarHeight': boolean
 
       /**
+       * 自动上传错误日志到 GitHub（车机无法抓 logcat，便于反馈问题）
+       */
+      'common.isAutoUploadErrorLog': boolean
+
+      /**
        * 主题id
        */
       'theme.id': string

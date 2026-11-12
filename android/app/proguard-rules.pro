@@ -42,3 +42,9 @@
 
 # Keep kotlinx.serialization
 -keepclassmembers class kotlinx.serialization.json.** { *; }
+
+# JSch（错误日志 SSH 中转上传）内部通过 Class.forName 按配置名加载算法实现，整体保留
+-keep class com.jcraft.jsch.** { *; }
+-keep class net.i2p.crypto.eddsa.** { *; }
+-dontwarn com.jcraft.jsch.**
+-dontwarn net.i2p.crypto.eddsa.**

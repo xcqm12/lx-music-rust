@@ -19,6 +19,25 @@ jobs:
       - name: Setup Env
         uses: ./.github/actions/setup
 
+      # 可选：用 secrets 覆盖仓库内已提交的混淆上报凭证（不设则用已提交文件）
+      # LX_REPORT_RELAY 为 JSON：{"host","port","user","key","hostKeySha256"}
+      - name: Regenerate obfuscated report credentials (optional override)
+        env:
+          LX_REPORT_TOKEN: ${{ secrets.LX_REPORT_TOKEN }}
+          LX_REPORT_RELAY: ${{ secrets.LX_REPORT_RELAY }}
+        shell: bash
+        run: |
+          if [ -n "$LX_REPORT_RELAY" ]; then
+            node scripts/gen-report-relay.mjs --env
+          else
+            echo "LX_REPORT_RELAY not set, keep committed reportRelay.ts"
+          fi
+          if [ -n "$LX_REPORT_TOKEN" ]; then
+            node scripts/gen-report-token.mjs --env
+          else
+            echo "LX_REPORT_TOKEN not set, keep committed reportToken.ts"
+          fi
+
       - name: Build Packages
         env:
           DISABLE_SVG: 1
