@@ -245,6 +245,13 @@ android {
         }
     }
 
+    packagingOptions {
+        resources {
+            // jsch 与 jspecify 均携带该 OSGI 清单，排除以避免资源合并冲突
+            excludes += ['META-INF/versions/9/OSGI-INF/MANIFEST.MF']
+        }
+    }
+
     // applicationVariants are e.g. debug, release
     applicationVariants.all { variant ->
         variant.outputs.each { output ->
