@@ -53,6 +53,23 @@
 - **JNI 桥接**：通过 Rust FFI 与 Android Kotlin 层交互，使用 TurboModule 暴露接口给 React Native
 - **安全文本**：SafeText 组件强制字符串化文本内容，规避 RN Text 组件校验报错
 - **ESLint 规则**：配置 `react-native/no-raw-text` 规则，从开发阶段杜绝文本渲染错误
+- **车机加固**：错误日志自动上报 GitHub Issues（SSH 中转优先/直连兜底）、原生崩溃同步落盘（CrashSaver）、防重打包自毁（签名校验）
+
+### 错误日志自动上报
+
+车机设备通常无法抓取 logcat，出问题难以反馈。应用在发生错误时可自动将「设置-错误日志」的内容上报为本仓库的 [GitHub issue](https://github.com/xcqm12/lx-music-rust/issues)：
+
+- **双通道上传**：优先走自建 SSH 中转服务器（GitHub 凭证仅存服务端，APK 内不含），中转不可用时回退直连 GitHub API
+- **触发时机**：错误发生约 15 秒后自动上传（多条错误合并为一条）；原生崩溃在下次启动时并入日志后检查上传
+- **防刷限流**：客户端两次成功上传至少间隔 6 小时、内容无变化自动跳过；服务端另有频率限制与重复内容判重
+- **隐私与开关**：日志可能包含使用记录，默认开启，可在「设置 → 其他 → 错误日志」随时关闭；也可在该页「立即上传」或填写自己的直连 Token（仅授予 Issues 权限）
+
+### 防重打包自毁
+
+为防止 APK 被逆向重打包后二次分发滥用，release 包启动时会校验当前签名证书与构建期写入的指纹是否一致，不一致（即被第三方重签名）将清空应用数据并退出。
+
+- 从 [Releases](https://github.com/xcqm12/lx-music-rust/releases) 正常下载安装不受任何影响
+- 开发者本地 debug 构建不启用该校验；构建期取不到签名配置时也会放行（不误伤）
 
 ### Rust 核心模块
 
@@ -184,6 +201,17 @@ npx react-native run-android --active-arch-only
 # 打开调试菜单
 adb shell input keyevent 82
 ```
+
+#### CI 可选 secrets
+
+以下 secrets 均为可选，不设置时 CI 使用仓库内已提交的混淆凭证文件构建：
+
+| Secret | 用途 |
+|--------|------|
+| `LX_REPORT_RELAY` | 覆盖错误上报的中转凭证，JSON 格式：`{"host":"...","port":54125,"user":"...","key":"<PEM 私钥>","hostKeySha256":"..."}` |
+| `LX_REPORT_TOKEN` | 覆盖 GitHub 直连上传凭证（细粒度 PAT，仅授予本仓库 Issues:write 权限） |
+
+凭证轮换：服务器重新生成密钥对后，本地运行 `node scripts/gen-report-relay.mjs --host <ip> --port <port> --user <user> --key-file <私钥路径> --host-key-sha256 <指纹>` 重新生成 `src/config/reportRelay.ts` 并提交（脚本自带 roundtrip 自测）。
 
 ### 数据同步服务
 
