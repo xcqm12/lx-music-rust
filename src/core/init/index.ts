@@ -14,6 +14,7 @@ import settingState from '@/store/setting/state'
 import { checkUpdate } from '@/core/version'
 import { bootLog } from '@/utils/bootLog'
 import { initErrorReport } from '@/utils/errorReport'
+import { initIntegrityCheck } from '@/utils/integrityCheck'
 import { cheatTip } from '@/utils/tools'
 
 let isFirstPush = true
@@ -68,6 +69,10 @@ export default async() => {
   // 启动检查内部自带延迟，不会阻塞初始化
   initErrorReport()
   bootLog('Error report inited.')
+
+  // 防逆向·服务器端二次校验（内部自带 45s 延迟，fail-open）
+  initIntegrityCheck()
+  bootLog('Integrity check inited.')
 
   // syncSetting()
 

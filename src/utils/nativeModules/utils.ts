@@ -114,3 +114,13 @@ export interface SshReportConfig {
 export const reportViaSsh = async(config: SshReportConfig, payload: string): Promise<{ code: number, output: string, stderr?: string }> => {
   return UtilsModule.reportViaSsh(config, payload)
 }
+
+/** 当前 APK 签名证书 SHA-256（冒号小写十六进制）；debug 构建或取不到签名时返回空串 */
+export const getSigningCertSha256 = async(): Promise<string> => {
+  return UtilsModule.getSigningCertSha256()
+}
+
+/** 服务器端二次校验判负后的自毁入口（清空应用数据并退出，debug 构建拒绝执行） */
+export const selfDestruct = (): void => {
+  UtilsModule.selfDestruct()
+}

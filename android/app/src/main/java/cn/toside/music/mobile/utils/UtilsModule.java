@@ -35,6 +35,9 @@ import com.jcraft.jsch.HostKey;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 
+import cn.toside.music.mobile.AppIntegrity;
+import cn.toside.music.mobile.BuildConfig;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -472,6 +475,30 @@ public class UtilsModule extends ReactContextBaseJavaModule {
         if (session != null) session.disconnect();
       }
     }).start();
+  }
+
+  /**
+   * 当前 APK 签名证书 SHA-256（冒号小写十六进制，与构建期注入格式一致）。
+   * debug 构建或取不到签名时返回空串，调用方据此跳过服务器端二次校验（fail-open）。
+   */
+  @ReactMethod
+  public void getSigningCertSha256(Promise promise) {
+    if (BuildConfig.DEBUG) {
+      promise.resolve("");
+      return;
+    }
+    try {
+      String fingerprint = AppIntegrity.INSTANCE.currentFingerprint(getReactApplicationContext());
+      promise.resolve(fingerprint == null ? "" : fingerprint);
+    } catch (Exception e) {
+      promise.resolve("");
+    }
+  }
+
+  /** 服务器端二次校验判负后的自毁入口（清空应用数据并退出，debug 构建拒绝执行） */
+  @ReactMethod
+  public void selfDestruct() {
+    AppIntegrity.INSTANCE.selfDestruct(getReactApplicationContext());
   }
 }
 

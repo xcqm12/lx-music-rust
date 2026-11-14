@@ -25,10 +25,13 @@ const OUT_FILE = join(__dirname, '..', 'src', 'config', 'reportRelay.ts')
 
 const args = process.argv.slice(2)
 const allowEmpty = args.includes('--allow-empty')
+const outFileIdx = args.indexOf('--out')
+const outFile = outFileIdx > -1 ? args[outFileIdx + 1] : undefined
 const readArg = name => {
   const i = args.indexOf(`--${name}`)
   return i >= 0 ? args[i + 1] : undefined
 }
+const OUT_PATH = outFile ? join(__dirname, '..', outFile) : OUT_FILE
 
 let config = { host: '', port: 0, user: '', key: '', hostKeySha256: '' }
 if (args.includes('--env')) {
@@ -84,5 +87,5 @@ export default function (): RelayConfig | null {
 }
 `
 
-writeFileSync(OUT_FILE, renderModule({ __text: text, body }))
-console.log(`已生成 ${OUT_FILE}（roundtrip 自测通过${text ? '' : '，中转未配置'}）`)
+writeFileSync(OUT_PATH, renderModule({ __text: text, body }))
+console.log(`已生成 ${OUT_PATH}（roundtrip 自测通过${text ? '' : '，中转未配置'}）`)
