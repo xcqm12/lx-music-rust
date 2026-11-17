@@ -10,6 +10,7 @@ import {
   // Setting,
 } from '@/screens'
 import { Provider } from '@/store/Provider'
+import ErrorBoundary from '@/components/common/ErrorBoundary'
 
 import {
   HOME_SCREEN,
@@ -25,13 +26,15 @@ import VersionModal from './components/VersionModal'
 import PactModal from './components/PactModal'
 import SyncModeModal from './components/SyncModeModal'
 
-function WrappedComponent(Component: any) {
+function WrappedComponent(Component: any, screenName: string) {
   return function inject(props: Record<string, any>) {
     const EnhancedComponent = () => (
       <Provider>
-        <Component
-          {...props}
-        />
+        <ErrorBoundary screen={screenName}>
+          <Component
+            {...props}
+          />
+        </ErrorBoundary>
       </Provider>
     )
 
@@ -40,13 +43,13 @@ function WrappedComponent(Component: any) {
 }
 
 export default () => {
-  Navigation.registerComponent(HOME_SCREEN, () => WrappedComponent(Home))
-  Navigation.registerComponent(PLAY_DETAIL_SCREEN, () => WrappedComponent(PlayDetail))
-  Navigation.registerComponent(SONGLIST_DETAIL_SCREEN, () => WrappedComponent(SonglistDetail))
-  Navigation.registerComponent(COMMENT_SCREEN, () => WrappedComponent(Comment))
-  Navigation.registerComponent(VERSION_MODAL, () => WrappedComponent(VersionModal))
-  Navigation.registerComponent(PACT_MODAL, () => WrappedComponent(PactModal))
-  Navigation.registerComponent(SYNC_MODE_MODAL, () => WrappedComponent(SyncModeModal))
+  Navigation.registerComponent(HOME_SCREEN, () => WrappedComponent(Home, HOME_SCREEN))
+  Navigation.registerComponent(PLAY_DETAIL_SCREEN, () => WrappedComponent(PlayDetail, PLAY_DETAIL_SCREEN))
+  Navigation.registerComponent(SONGLIST_DETAIL_SCREEN, () => WrappedComponent(SonglistDetail, SONGLIST_DETAIL_SCREEN))
+  Navigation.registerComponent(COMMENT_SCREEN, () => WrappedComponent(Comment, COMMENT_SCREEN))
+  Navigation.registerComponent(VERSION_MODAL, () => WrappedComponent(VersionModal, VERSION_MODAL))
+  Navigation.registerComponent(PACT_MODAL, () => WrappedComponent(PactModal, PACT_MODAL))
+  Navigation.registerComponent(SYNC_MODE_MODAL, () => WrappedComponent(SyncModeModal, SYNC_MODE_MODAL))
   // Navigation.registerComponent(SETTING_SCREEN, () => WrappedComponent(Setting))
 
   console.info('All screens have been registered...')

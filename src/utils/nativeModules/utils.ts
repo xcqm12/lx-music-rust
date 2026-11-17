@@ -2,6 +2,30 @@ import { AppState, NativeEventEmitter, NativeModules } from 'react-native'
 
 const { UtilsModule } = NativeModules
 
+/** 原生层 getConstants() 暴露的设备信息（车机/低内存设备降级用） */
+export const deviceProfile: {
+  isLowRamDevice: boolean
+  memoryClass: number
+  sdkInt: number
+} = (() => {
+  try {
+    const constants = UtilsModule as {
+      isLowRamDevice?: boolean
+      memoryClass?: number
+      sdkInt?: number
+    }
+    const memoryClass = Number(constants.memoryClass) || 0
+    return {
+      // 部分车机 OEM 不设置 lowRam 标记，但应用堆只有 128MB 及以下
+      isLowRamDevice: constants.isLowRamDevice === true || (memoryClass > 0 && memoryClass <= 128),
+      memoryClass,
+      sdkInt: Number(constants.sdkInt) || 0,
+    }
+  } catch {
+    return { isLowRamDevice: false, memoryClass: 0, sdkInt: 0 }
+  }
+})()
+
 export const exitApp = UtilsModule.exitApp
 
 export const getSupportedAbis = UtilsModule.getSupportedAbis
@@ -111,7 +135,7 @@ export interface SshReportConfig {
 }
 
 /** SSH 中转上报：执行服务端固定命令 report，stdin 传 JSON，返回远端退出码与输出 */
-export const reportViaSsh = async(config: SshReportConfig, payload: string): Promise<{ code: number, output: string, stderr?: string }> => {
+export const reportViaSsh = async(config: SshReportConfig, payload: string): Promise<{ code: number, output: string, stderr?: string, timedOut?: boolean }> => {
   return UtilsModule.reportViaSsh(config, payload)
 }
 

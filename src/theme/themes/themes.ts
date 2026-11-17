@@ -4529,7 +4529,7 @@ export default [
       "extInfo": {
         "c-app-background": "rgba(255, 255, 255, 0.15)",
         "c-main-background": "rgba(255, 255, 255, 0.85)",
-        "bg-image": "134124384_p0.png",
+        "bg-image": "134124384_p0.jpg",
         "bg-image-position": "center",
         "bg-image-size": "cover",
         "c-badge-primary": "var(c-primary)",
@@ -5033,7 +5033,7 @@ export default [
       "extInfo": {
         "c-app-background": "rgba(255, 255, 255, 0.15)",
         "c-main-background": "rgba(255, 250, 250, 0.9)",
-        "bg-image": "144841578_p0.png",
+        "bg-image": "144841578_p0.jpg",
         "bg-image-position": "center",
         "bg-image-size": "cover",
         "c-badge-primary": "var(c-primary)",

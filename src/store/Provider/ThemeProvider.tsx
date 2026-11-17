@@ -10,6 +10,8 @@ export default memo(({ children }: {
 
   useEffect(() => {
     const handleUpdateTheme = (theme: LX.ActiveTheme) => {
+      // 只接受字段完整的主题对象，避免把 undefined 颜色传给整棵页面树
+      if (!theme?.id || typeof theme['c-font'] != 'string' || typeof theme['c-content-background'] != 'string') return
       requestAnimationFrame(() => {
         setTheme(theme)
       })

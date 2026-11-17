@@ -6,6 +6,19 @@ Project versioning adheres to [Semantic Versioning](http://semver.org/).
 Commit convention is based on [Conventional Commits](http://conventionalcommits.org/).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [1.9.4](https://github.com/xcqm12/lx-music-rust/compare/v1.9.3...v1.9.4) - 2026-11-17
+
+车机（Android 6 及以上）适配与稳定性修复：修复歌单/设置页切换主题闪退，修复错误日志经香港中转上报时的“假失败”。
+
+### 优化
+
+- **低内存渲染优化**：内置主题背景图统一降采样至最长边 1920px，两张超大 PNG 转为 JPEG（安装包减小约 7MB）；背景图按视图尺寸解码（`resizeMethod`），应用堆 ≤128MB 的低内存车机自动关闭动态背景模糊，降低切换主题、开启动态背景时的内存峰值
+
+### 修复
+
+- **切换主题闪退**：主题数据增加校验与回退，损坏/旧版本自定义主题不再把无效颜色送入原生层；设置页过滤损坏的用户主题；新增页面级错误边界，渲染异常仅降级当前页面并写入错误日志，不再整个应用闪退；修复主页主题/配置更新监听器未注销导致的内存泄漏
+- **错误日志自动上报**：修复 SSH 中转远端退出码读取竞态——服务端已成功创建 issue 却提示“上传失败”并触发直连兜底/重复提交；现在以 `OK`/`DUP` 输出协议为准判定成功，失败时同时显示中转与直连原因，便于定位网络问题
+
 ## [1.9.3](https://github.com/xcqm12/lx-music-rust/compare/v1.9.2...v1.9.3) - 2026-11-11
 
 车机（Android 5.x/6.x 低内存设备）闪退加固：崩溃日志可导出，修复潜在闪退点。

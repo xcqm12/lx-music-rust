@@ -8,9 +8,13 @@ import { Navigation } from 'react-native-navigation'
 import { toast } from '@/utils/tools'
 
 const localVersionInfo = {
-  version: '1.9.3',
-  desc: '车机（Android 5.x/6.x 低内存设备）闪退加固：崩溃日志可导出，修复潜在闪退点。\n\n【优化】\n- 崩溃日志落盘：原生未捕获异常同步写入本地，下次启动自动并入「设置-错误日志」，含机型/系统/内存信息，便于车机等无法抓 logcat 的场景反馈\n- 启用 largeHeap，缓解低内存设备图片/列表导致的内存不足\n- 播放器初始化失败自动去掉可选参数降级重试\n\n【修复】\n- Rust 库缺失不再闪退：加载失败仅停用 Rust 功能并记录日志，调用层捕获所有 Throwable\n- Rust JNI panic 防护：全部导出函数加 catch_unwind，不再导致进程崩溃\n\n【构建】\n- CI Rust 四架构库改用与 app JNI 符号匹配的 src/rust 编译，release 库 strip 减小体积\n- CI 增加 APK 签名校验，防止 secrets 缺失时静默回退 debug 签名导致无法覆盖安装',
+  version: '1.9.4',
+  desc: '车机（Android 6 及以上）适配与稳定性修复：修复歌单/设置页切换主题闪退，修复错误日志经香港中转上报时的“假失败”。\n\n【优化】\n- 低内存渲染优化：内置主题背景图统一降采样至最长边 1920px，超大 PNG 转 JPEG（安装包减小约 7MB）\n- 背景图按视图尺寸解码；应用堆 ≤128MB 的低内存车机自动关闭动态背景模糊，降低切换主题时的内存峰值\n\n【修复】\n- 切换主题闪退：主题数据校验与回退，损坏/旧版自定义主题不再产生无效颜色；新增页面级错误边界，渲染异常仅降级当前页面并写入错误日志\n- 修复主页主题/配置监听器未注销导致的内存泄漏\n- 错误日志上报：修复 SSH 中转退出码读取竞态导致的“已提交却提示失败/重复提交”，失败时同时显示中转与直连原因',
   history: [
+    {
+      version: '1.9.3',
+      desc: '车机（Android 5.x/6.x 低内存设备）闪退加固：崩溃日志可导出，修复潜在闪退点。\n\n【优化】\n- 崩溃日志落盘：原生未捕获异常同步写入本地，下次启动自动并入「设置-错误日志」，含机型/系统/内存信息，便于车机等无法抓 logcat 的场景反馈\n- 启用 largeHeap，缓解低内存设备图片/列表导致的内存不足\n- 播放器初始化失败自动去掉可选参数降级重试\n\n【修复】\n- Rust 库缺失不再闪退：加载失败仅停用 Rust 功能并记录日志，调用层捕获所有 Throwable\n- Rust JNI panic 防护：全部导出函数加 catch_unwind，不再导致进程崩溃\n\n【构建】\n- CI Rust 四架构库改用与 app JNI 符号匹配的 src/rust 编译，release 库 strip 减小体积\n- CI 增加 APK 签名校验，防止 secrets 缺失时静默回退 debug 签名导致无法覆盖安装',
+    },
     {
       version: '1.9.2',
       desc: '同步上游 v1.9.2，修复 kg 歌单打开与歌曲丢失问题。\n\n【修复】\n- 修复无法打开 kg 歌单的问题\n- 修复打开某些 kg 歌单时歌曲丢失的问题\n\n【变更】\n- 默认禁用音频卸载（升级用户自动关闭）\n\n【构建】\n- react-native-track-player 依赖升级（上游 1.9.2）',

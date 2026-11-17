@@ -150,12 +150,14 @@ const buildBody = async(trigger: ReportTrigger, log: string, truncated: boolean)
 
 /** SSH 中转上传。服务端协议：stdin 为 JSON {title, body}，
  *  退出码 0 且输出 OK <url> 为成功，DUP 为重复（已上报过），ERR* 为失败。
+ *  注意：部分设备/网络下远端退出码会读不到（code = -1），此时以输出协议为准，
+ *  避免“服务端已建 issue 但 APP 判为失败并重复提交”。
  *  连接信息与受限密钥来自混淆的 reportRelay.ts（host key 指纹由原生层校验防 MITM）。 */
 const uploadViaRelay = async(title: string, body: string): Promise<UploadResult> => {
   const relay = getRelayConfig()
   if (!relay) return { ok: false, message: '中转未配置' }
   try {
-    const { code, output } = await reportViaSsh({
+    const { code, output, stderr } = await reportViaSsh({
       host: relay.host,
       port: relay.port,
       username: relay.user,
@@ -163,10 +165,18 @@ const uploadViaRelay = async(title: string, body: string): Promise<UploadResult>
       privateKey: relay.key,
       timeout: 25000,
     }, JSON.stringify({ title, body }))
-    if (code === 0 && output.startsWith('OK')) return { ok: true, message: '上传成功，感谢反馈' }
-    if (code === 0 && output.startsWith('DUP')) return { ok: true, message: '该日志已上报过，无需重复上传' }
-    console.log('relay upload failed:', code, output)
-    return { ok: false, message: `中转上传失败（${output || `exit ${code}`}）` }
+    const text = (output ?? '').trim()
+    if (text.startsWith('OK')) return { ok: true, message: '上传成功，感谢反馈' }
+    if (text.startsWith('DUP')) return { ok: true, message: '该日志已上报过，无需重复上传' }
+    if (text.startsWith('ERR')) {
+      console.log('relay upload failed:', code, text, stderr)
+      return { ok: false, message: `中转上传失败（${text}）` }
+    }
+    // 输出丢失但远端命令正常结束，按成功处理（服务端有内容去重，不会重复建 issue）
+    if (code === 0) return { ok: true, message: '上传成功，感谢反馈' }
+    console.log('relay upload failed:', code, text, stderr)
+    const reason = [text, stderr ?? ''].find(value => value.length > 0) ?? `exit ${code}`
+    return { ok: false, message: `中转上传失败（${reason}）` }
   } catch (err) {
     console.log('relay connect failed:', (err as Error).message)
     return { ok: false, message: `中转连接失败（${(err as Error).message}）` }
@@ -229,9 +239,16 @@ const upload = async(trigger: ReportTrigger): Promise<UploadResult> => {
     const title = `[自动错误上报] v${process.versions?.app ?? ''} API${Platform.Version} ${await getAbi()} ${buildSummary(log)}`.trim().slice(0, 200)
     const body = await buildBody(trigger, content, truncated)
 
-    // 中转优先，失败回退直连
+    // 中转优先，失败回退直连；两者都失败时把两条原因都带回去，便于用户反馈定位
     const relayResult = await uploadViaRelay(title, body)
-    const result = relayResult.ok ? relayResult : await uploadDirect(title, body)
+    let result = relayResult
+    if (!relayResult.ok) {
+      const directResult = await uploadDirect(title, body)
+      result = directResult.ok ? directResult : {
+        ok: false,
+        message: `${relayResult.message}；${directResult.message}`,
+      }
+    }
 
     if (result.ok) {
       const newState = await loadState()

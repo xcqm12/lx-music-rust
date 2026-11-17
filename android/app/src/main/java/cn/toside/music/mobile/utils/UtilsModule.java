@@ -2,6 +2,7 @@ package cn.toside.music.mobile.utils;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -41,10 +42,13 @@ import cn.toside.music.mobile.BuildConfig;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 public class UtilsModule extends ReactContextBaseJavaModule {
@@ -64,6 +68,31 @@ public class UtilsModule extends ReactContextBaseJavaModule {
   @Override
   public String getName() {
     return "UtilsModule";
+  }
+
+  /**
+   * 同步设备信息，供 JS 在首屏渲染前决定是否启用高内存开销的效果
+   * （如动态背景模糊）。车机/Android 6 老设备内存吃紧时需要降级。
+   */
+  @Override
+  public Map<String, Object> getConstants() {
+    final Map<String, Object> constants = new HashMap<>();
+    boolean isLowRamDevice = false;
+    int memoryClass = 0;
+    try {
+      ActivityManager activityManager = (ActivityManager) reactContext.getSystemService(Context.ACTIVITY_SERVICE);
+      if (activityManager != null) {
+        // isLowRamDevice 在 API 19+ 可用，Android 6 车机通常会返回 true
+        isLowRamDevice = activityManager.isLowRamDevice();
+        memoryClass = activityManager.getMemoryClass();
+      }
+    } catch (Exception ignored) {
+      // 拿不到就按非低内存设备处理
+    }
+    constants.put("isLowRamDevice", isLowRamDevice);
+    constants.put("memoryClass", memoryClass);
+    constants.put("sdkInt", Build.VERSION.SDK_INT);
+    return constants;
   }
 
   @ReactMethod
@@ -456,20 +485,43 @@ public class UtilsModule extends ReactContextBaseJavaModule {
         byte[] buf = new byte[4096];
         int n;
         long deadline = System.currentTimeMillis() + timeout;
-        while ((n = is.read(buf)) >= 0) {
-          out.write(buf, 0, n);
-          if (out.size() > 65536) break;
-          if (System.currentTimeMillis() > deadline) break;
+        boolean readTimedOut = false;
+        try {
+          while ((n = is.read(buf)) >= 0) {
+            out.write(buf, 0, n);
+            if (out.size() > 65536) break;
+            if (System.currentTimeMillis() > deadline) break;
+          }
+        } catch (IOException e) {
+          // 读超时或连接中断：保留已收到的输出，由 JS 按输出内容判定结果
+          readTimedOut = true;
+        }
+
+        // stdout 读到 EOF 时远端通道可能尚未关闭，exit status 还没同步过来。
+        // 直接读会得到 -1，导致“服务端已成功建 issue”也被判为失败并触发直连兜底。
+        long closeDeadline = System.currentTimeMillis() + 5000;
+        while (!channel.isClosed() && System.currentTimeMillis() < closeDeadline) {
+          try {
+            Thread.sleep(50);
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            break;
+          }
         }
         int code = channel.isClosed() ? channel.getExitStatus() : -1;
 
+        String stdout = out.toString("UTF-8").trim();
+        String stderr = errStream.toString("UTF-8").trim();
         WritableMap result = Arguments.createMap();
         result.putInt("code", code);
-        result.putString("output", out.toString("UTF-8").trim());
-        if (errStream.size() > 0) result.putString("stderr", errStream.toString("UTF-8").trim());
+        // 正常情况下服务端把协议结果写到 stdout；异常时把 stderr 带回去便于定位
+        result.putString("output", stdout.length() > 0 ? stdout : stderr);
+        if (stderr.length() > 0) result.putString("stderr", stderr);
+        if (readTimedOut) result.putBoolean("timedOut", true);
         promise.resolve(result);
       } catch (Exception e) {
-        promise.reject("ERR_SSH", e.getMessage());
+        String message = e.getClass().getSimpleName() + ": " + (e.getMessage() == null ? "unknown error" : e.getMessage());
+        promise.reject("ERR_SSH", message);
       } finally {
         if (channel != null) channel.disconnect();
         if (session != null) session.disconnect();

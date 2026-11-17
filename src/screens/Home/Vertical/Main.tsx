@@ -81,7 +81,7 @@ const SongListPage = () => {
       global.state_event.off('navActiveIdUpdated', handleNavIdUpdate)
       global.state_event.off('themeUpdated', handleHide)
       global.state_event.off('languageChanged', handleHide)
-      global.state_event.on('configUpdated', handleConfigUpdated)
+      global.state_event.off('configUpdated', handleConfigUpdated)
     }
   }, [])
 
@@ -117,7 +117,7 @@ const LeaderboardPage = () => {
       global.state_event.off('navActiveIdUpdated', handleNavIdUpdate)
       global.state_event.off('themeUpdated', handleHide)
       global.state_event.off('languageChanged', handleHide)
-      global.state_event.on('configUpdated', handleConfigUpdated)
+      global.state_event.off('configUpdated', handleConfigUpdated)
     }
   }, [])
 
@@ -152,7 +152,7 @@ const MylistPage = () => {
       global.state_event.off('navActiveIdUpdated', handleNavIdUpdate)
       global.state_event.off('themeUpdated', handleHide)
       global.state_event.off('languageChanged', handleHide)
-      global.state_event.on('configUpdated', handleConfigUpdated)
+      global.state_event.off('configUpdated', handleConfigUpdated)
     }
   }, [])
 
