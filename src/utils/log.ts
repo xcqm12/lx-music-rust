@@ -17,12 +17,33 @@ const logTools = {
       // console.log(isExists)
       if (!isExists) await writeFile(logPath, '')
       await mergeCrashLogs()
+      await mergeBreadcrumbs()
       if (this.tempLog?.length) this.writeLog(this.tempLog.map(m => `${m.time} ${m.type} ${m.text}`).join('\n----lx log----\n'))
       this.tempLog = null
     } catch (err) {
       console.log(err)
     }
   },
+}
+
+/**
+ * 把原生层面包屑（Diagnostics 落盘的 filesDir/diagnostics/breadcrumbs.log）并入 error.log。
+ * 原生崩溃/OOM 被杀时 JS 来不及记录，这份“最后操作 + 内存快照”是定位关键；
+ * 合并后删除，避免每次启动重复写入。
+ */
+async function mergeBreadcrumbs() {
+  const breadcrumbPath = privateStorageDirectoryPath + '/diagnostics/breadcrumbs.log'
+  try {
+    if (!(await existsFile(breadcrumbPath))) return
+    const content = await readFile(breadcrumbPath)
+    if (content?.trim()) {
+      const tail = content.length > 32768 ? content.slice(-32768) : content
+      await appendFile(logPath, '\n----lx log----\n[BREADCRUMBS] 上次运行最后操作\n' + tail.trim())
+    }
+    await unlink(breadcrumbPath)
+  } catch (err) {
+    console.log('merge breadcrumbs failed:', err)
+  }
 }
 
 /**

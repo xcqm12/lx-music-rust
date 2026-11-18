@@ -6,7 +6,7 @@
 // 中转不可用时回退直连 api.github.com（APK 内混淆凭证或用户覆盖凭证）。
 import { Platform } from 'react-native'
 import { httpFetch } from '@/utils/request'
-import { getSupportedAbis, reportViaSsh } from '@/utils/nativeModules/utils'
+import { getSupportedAbis, getMemoryInfo, reportViaSsh } from '@/utils/nativeModules/utils'
 import { getData, saveData, removeData } from '@/plugins/storage'
 import { setLogErrorListener, getLogs } from '@/utils/log'
 import settingState from '@/store/setting/state'
@@ -43,6 +43,8 @@ interface ReportState {
 interface UploadResult {
   ok: boolean
   message: string
+  /** 已明确是限流/重复等业务原因，不必再尝试其他通道 */
+  skipFallback?: boolean
 }
 
 let coalesceTimer: ReturnType<typeof setTimeout> | null = null
@@ -129,6 +131,10 @@ const buildSummary = (log: string) => {
 const buildBody = async(trigger: ReportTrigger, log: string, truncated: boolean) => {
   const abi = await getAbi()
   const device = getDeviceName()
+  const memory = await getMemoryInfo()
+  const memoryText = memory?.totalMemMB
+    ? `- 内存：可用 ${memory.availMemMB ?? '?'}MB / 总共 ${memory.totalMemMB}MB${memory.lowMemory ? '（系统低内存）' : ''}，应用堆 ${memory.heapUsedMB ?? '?'}/${memory.heapMaxMB ?? '?'}MB，存储剩余 ${memory.diskFreeMB ?? '?'}MB`
+    : null
   const lines = [
     '<!-- 本 issue 由应用自动上报（设置-错误日志），由维护者处理 -->',
     '',
@@ -137,6 +143,7 @@ const buildBody = async(trigger: ReportTrigger, log: string, truncated: boolean)
     `- 系统：Android API ${Platform.Version}`,
     device ? `- 设备：${device}` : null,
     abi ? `- ABI：${abi}` : null,
+    memoryText,
     `- 上报时间：${new Date().toLocaleString()}`,
     `- 触发方式：${TRIGGER_NAMES[trigger]}`,
     '',
@@ -146,6 +153,38 @@ const buildBody = async(trigger: ReportTrigger, log: string, truncated: boolean)
   if (truncated) lines.push(`（日志超过 ${MAX_LOG_LENGTH} 字符，仅保留最后部分）`, '')
   lines.push('```text', log, '```')
   return lines.join('\n')
+}
+
+/** HTTPS 中转上传（443）：车机网络常封禁非标 SSH 端口，优先走这里。
+ *  服务端 nginx 反代到本地受限服务，校验固定令牌后复用 report-submit。 */
+const uploadViaHttp = async(title: string, body: string): Promise<UploadResult> => {
+  const relay = getRelayConfig()
+  if (!relay?.httpUrl || !relay.httpToken) return { ok: false, message: 'HTTPS 中转未配置' }
+  try {
+    const { promise } = httpFetch(relay.httpUrl, {
+      method: 'post',
+      timeout: 20000,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-LX-Report-Token': relay.httpToken,
+      },
+      // 交给 request.js 统一 JSON.stringify（直接传字符串会被二次编码）
+      body: { title, body },
+    })
+    const resp = await promise
+    const text = (typeof resp.body == 'string' ? resp.body : '').trim()
+    if (text.startsWith('OK')) return { ok: true, message: '上传成功，感谢反馈' }
+    if (text.startsWith('DUP')) return { ok: true, message: '该日志已上报过，无需重复上传' }
+    if (text.includes('ERR rate')) {
+      console.log('http relay rate limited:', resp.statusCode, text)
+      return { ok: false, skipFallback: true, message: '提交过于频繁，请稍后再试' }
+    }
+    console.log('http relay failed:', resp.statusCode, text)
+    return { ok: false, message: `HTTPS 中转失败（${text || `HTTP ${resp.statusCode}`}）` }
+  } catch (err) {
+    console.log('http relay error:', (err as Error).message)
+    return { ok: false, message: `HTTPS 中转连接失败（${(err as Error).message}）` }
+  }
 }
 
 /** SSH 中转上传。服务端协议：stdin 为 JSON {title, body}，
@@ -168,6 +207,10 @@ const uploadViaRelay = async(title: string, body: string): Promise<UploadResult>
     const text = (output ?? '').trim()
     if (text.startsWith('OK')) return { ok: true, message: '上传成功，感谢反馈' }
     if (text.startsWith('DUP')) return { ok: true, message: '该日志已上报过，无需重复上传' }
+    if (text.includes('ERR rate')) {
+      console.log('relay rate limited:', code, text)
+      return { ok: false, skipFallback: true, message: '提交过于频繁，请稍后再试' }
+    }
     if (text.startsWith('ERR')) {
       console.log('relay upload failed:', code, text, stderr)
       return { ok: false, message: `中转上传失败（${text}）` }
@@ -239,14 +282,24 @@ const upload = async(trigger: ReportTrigger): Promise<UploadResult> => {
     const title = `[自动错误上报] v${process.versions?.app ?? ''} API${Platform.Version} ${await getAbi()} ${buildSummary(log)}`.trim().slice(0, 200)
     const body = await buildBody(trigger, content, truncated)
 
-    // 中转优先，失败回退直连；两者都失败时把两条原因都带回去，便于用户反馈定位
-    const relayResult = await uploadViaRelay(title, body)
-    let result = relayResult
-    if (!relayResult.ok) {
-      const directResult = await uploadDirect(title, body)
-      result = directResult.ok ? directResult : {
+    // 通道优先级：HTTPS(443) → SSH(自建端口) → 直连 GitHub。
+    // 车机网络常见封禁非标 SSH 端口，HTTPS 走站点同域更可靠；限流/重复不再无谓重试。
+    const attempts: UploadResult[] = []
+    let result: UploadResult = { ok: false, message: '' }
+    for (const channel of [uploadViaHttp, uploadViaRelay, uploadDirect]) {
+      const channelResult = await channel(title, body)
+      if (channelResult.ok) {
+        result = channelResult
+        break
+      }
+      attempts.push(channelResult)
+      result = channelResult
+      if (channelResult.skipFallback) break
+    }
+    if (!result.ok && attempts.length > 1) {
+      result = {
         ok: false,
-        message: `${relayResult.message}；${directResult.message}`,
+        message: attempts.map(item => item.message).join('；'),
       }
     }
 

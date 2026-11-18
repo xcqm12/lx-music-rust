@@ -41,4 +41,25 @@ if (process.env.NODE_ENV !== 'development') {
     log.error(`[NATIVE CRASH] ${deviceInfo}\n${errorString}`)
     console.log('+++++', errorString, '+++++')
   }, false)
+
+  // Hermes 未处理的 Promise 拒绝：异步搜索/请求中的异常不再静默丢失
+  try {
+    const hermes = (global as { HermesInternal?: {
+      enablePromiseRejectionTracker?: (options: {
+        allRejections: boolean
+        onUnhandled: (id: number, reason: unknown) => void
+        onHandled: (id: number) => void
+      }) => void
+    } }).HermesInternal
+    hermes?.enablePromiseRejectionTracker?.({
+      allRejections: true,
+      onUnhandled: (_id, reason) => {
+        const text = reason instanceof Error ? (reason.stack ?? `${reason.name}: ${reason.message}`) : String(reason)
+        log.error(`[UNHANDLED REJECTION] ${text}`)
+      },
+      onHandled: () => {},
+    })
+  } catch (err) {
+    console.log('enable promise rejection tracker failed:', err)
+  }
 }

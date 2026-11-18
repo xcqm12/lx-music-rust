@@ -239,7 +239,10 @@ const List = forwardRef<ListType, ListProps>(({
       maxToRenderPerBatch={4}
       // updateCellsBatchingPeriod={80}
       windowSize={8}
-      removeClippedSubviews={true}
+      // RN Android 的 removeClippedSubviews 在搜索/刷新快速替换列表时易触发原生崩溃
+      // （The specified child already has a parent / ViewHolder 相关问题），
+      // 车机上稳定性优先，关闭裁剪；列表项较轻，内存影响可控。
+      removeClippedSubviews={false}
       initialNumToRender={12}
       renderItem={renderItem}
       keyExtractor={getkey}

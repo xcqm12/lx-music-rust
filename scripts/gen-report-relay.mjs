@@ -33,7 +33,7 @@ const readArg = name => {
 }
 const OUT_PATH = outFile ? join(__dirname, '..', outFile) : OUT_FILE
 
-let config = { host: '', port: 0, user: '', key: '', hostKeySha256: '' }
+let config = { host: '', port: 0, user: '', key: '', hostKeySha256: '', httpUrl: '', httpToken: '' }
 if (args.includes('--env')) {
   const raw = process.env.LX_REPORT_RELAY ?? ''
   if (raw) config = JSON.parse(raw)
@@ -43,7 +43,7 @@ if (args.includes('--env')) {
   const user = readArg('user')
   const keyFile = readArg('key-file')
   if (!host || !port || !user || !keyFile) {
-    console.error('错误：参数不完整。用法：--host <ip> --port <port> --user <user> --key-file <路径> [--host-key-sha256 <指纹>] 或 --env / --allow-empty')
+    console.error('错误：参数不完整。用法：--host <ip> --port <port> --user <user> --key-file <路径> [--host-key-sha256 <指纹>] [--http-url <地址> --http-token <令牌>] 或 --env / --allow-empty')
     process.exit(1)
   }
   config = {
@@ -52,6 +52,8 @@ if (args.includes('--env')) {
     user,
     key: readFileSync(keyFile, 'utf8'),
     hostKeySha256: readArg('host-key-sha256') ?? '',
+    httpUrl: readArg('http-url') ?? '',
+    httpToken: readArg('http-token') ?? '',
   }
 }
 
@@ -72,6 +74,9 @@ const body = `export interface RelayConfig {
   user: string
   key: string
   hostKeySha256: string
+  /** HTTPS 中转（443，车机网络常封非标 SSH 端口时走这里） */
+  httpUrl?: string
+  httpToken?: string
 }
 
 export default function (): RelayConfig | null {

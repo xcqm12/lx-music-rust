@@ -61,6 +61,8 @@ const Image = memo(({ url, cache, resizeMode = 'cover', style, onError, nativeID
               // priority: FastImage.priority.normal,
               // cache: cache === false ? 'web' : 'immutable',
             }}
+            // 按视图尺寸降采样解码，2G 内存车机浏览歌单/封面时减少位图占用
+            resizeMethod="resize"
             onError={handleError}
             resizeMode={resizeMode}
             nativeID={nativeID}

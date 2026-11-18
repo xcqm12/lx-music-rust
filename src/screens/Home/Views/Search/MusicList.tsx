@@ -2,6 +2,8 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import OnlineList, { type OnlineListType, type OnlineListProps } from '@/components/OnlineList'
 import { search } from '@/core/search/music'
 import searchMusicState, { type Source } from '@/store/search/music/state'
+import { breadcrumb, formatError } from '@/utils/diagnostics'
+import { log } from '@/utils/log'
 
 // export type MusicListProps = Pick<OnlineListProps,
 // 'onLoadMore'
@@ -17,6 +19,14 @@ export default forwardRef<MusicListType, {}>((props, ref) => {
   const listRef = useRef<OnlineListType>(null)
   const searchInfoRef = useRef<{ text: string, source: Source }>({ text: '', source: 'kw' })
   const isUnmountedRef = useRef(false)
+
+  const handleSearchError = (stage: string, err: unknown) => {
+    listRef.current?.setStatus('error')
+    breadcrumb('search.error', `${stage} ${formatError(err)}`)
+    // 网络失败属常见情况，用 info 记录，避免触发自动上报刷 issue
+    log.info(`[search] ${stage}: ${formatError(err)}`)
+  }
+
   useImperativeHandle(ref, () => ({
     async loadList(text, source) {
       // const listDetailInfo = searchMusicState.listDetailInfo
@@ -37,8 +47,8 @@ export default forwardRef<MusicListType, {}>((props, ref) => {
             listRef.current?.setList(list, false, source == 'all')
             listRef.current?.setStatus(searchMusicState.listInfos[searchMusicState.source]!.maxPage <= page ? 'end' : 'idle')
           })
-        }).catch(() => {
-          listRef.current?.setStatus('error')
+        }).catch((err) => {
+          handleSearchError('first-page', err)
         })
       }
     },
@@ -60,21 +70,25 @@ export default forwardRef<MusicListType, {}>((props, ref) => {
       if (isUnmountedRef.current) return
       listRef.current?.setList(list, false, searchInfoRef.current.source == 'all')
       listRef.current?.setStatus(searchMusicState.listInfos[searchInfoRef.current.source]!.maxPage <= page ? 'end' : 'idle')
-    }).catch(() => {
-      listRef.current?.setStatus('error')
+    }).catch((err) => {
+      handleSearchError('refresh', err)
     })
   }
   const handleLoadMore: OnlineListProps['onLoadMore'] = () => {
     listRef.current?.setStatus('loading')
-    const info = searchMusicState.listInfos[searchInfoRef.current.source]!
-    const page = info?.list.length ? info.page + 1 : 1
+    const info = searchMusicState.listInfos[searchInfoRef.current.source]
+    if (!info) {
+      listRef.current?.setStatus('idle')
+      return
+    }
+    const page = info.list.length ? info.page + 1 : 1
     search(searchInfoRef.current.text, page, searchInfoRef.current.source).then((list) => {
       // const result = setListInfo(listDetail, searchMusicState.listDetailInfo.id, page)
       if (isUnmountedRef.current) return
       listRef.current?.setList(list, true, searchInfoRef.current.source == 'all')
       listRef.current?.setStatus(info.maxPage <= page ? 'end' : 'idle')
-    }).catch(() => {
-      listRef.current?.setStatus('error')
+    }).catch((err) => {
+      handleSearchError('load-more', err)
     })
   }
 

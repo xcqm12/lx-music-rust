@@ -38,6 +38,7 @@ import com.jcraft.jsch.Session;
 
 import cn.toside.music.mobile.AppIntegrity;
 import cn.toside.music.mobile.BuildConfig;
+import cn.toside.music.mobile.Diagnostics;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -167,6 +168,26 @@ public class UtilsModule extends ReactContextBaseJavaModule {
       array.pushString(abi);
     }
     promise.resolve(array);
+  }
+
+  /** 记录一条诊断面包屑（搜索/播放等关键操作 + 内存快照），供崩溃后追溯 */
+  @ReactMethod
+  public void recordBreadcrumb(String tag, String detail) {
+    try {
+      Diagnostics.INSTANCE.breadcrumb(reactContext, tag, detail == null ? "" : detail);
+    } catch (Exception ignored) {
+      // 诊断不应影响主流程
+    }
+  }
+
+  /** 当前内存快照 { availMemMB, totalMemMB, lowMemory, heapUsedMB, heapMaxMB, ... } */
+  @ReactMethod
+  public void getMemoryInfo(Promise promise) {
+    try {
+      promise.resolve(Arguments.makeNativeMap(Diagnostics.INSTANCE.memoryInfo(reactContext)));
+    } catch (Exception e) {
+      promise.resolve(Arguments.createMap());
+    }
   }
 
   @ReactMethod

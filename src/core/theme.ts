@@ -1,6 +1,7 @@
 import themeActions from '@/store/theme/action'
 import { getTheme } from '@/theme/themes'
 import { log } from '@/utils/log'
+import { breadcrumb } from '@/utils/diagnostics'
 import { updateSetting } from './common'
 import themeState from '@/store/theme/state'
 
@@ -14,6 +15,7 @@ export const applyTheme = (theme: LX.Theme) => {
 }
 
 export const setTheme = (id: string) => {
+  breadcrumb('theme.switch', `id=${id}`)
   updateSetting({ 'theme.id': id })
   void getTheme().then(theme => {
     // 用户主题可能已损坏/被删除，getTheme 会回退到内置主题，这里再兜一层

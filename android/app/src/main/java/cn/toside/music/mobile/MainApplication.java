@@ -68,13 +68,29 @@ public class MainApplication extends NavigationApplication {
     AppIntegrity.INSTANCE.check(this);
     // 在任何 RN 基础设施初始化之前安装崩溃落盘，链式转发不破坏已有处理器
     CrashSaver.INSTANCE.install(this);
+    // 面包屑 + 主线程看门狗 + 历史退出原因（ANR/原生崩溃/低内存）
+    Diagnostics.INSTANCE.install(this);
     super.onCreate();
 
     if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-      // If you opted-in for the New Architecture, we load the native entry point for
+      // If you opted-in to the New Architecture, we load the native entry point for
       // this app.
       DefaultNewArchitectureEntryPoint.load();
     }
     ReactNativeFlipper.initializeFlipper(this, getReactNativeHost().getReactInstanceManager());
+  }
+
+  @Override
+  public void onTrimMemory(int level) {
+    super.onTrimMemory(level);
+    // 记录内存压力；RUNNING_LOW 及以上释放图片内存缓存，降低低内存车机 OOM 概率
+    Diagnostics.INSTANCE.onTrimMemory(this, level);
+  }
+
+  @Override
+  public void onLowMemory() {
+    super.onLowMemory();
+    Diagnostics.INSTANCE.breadcrumb(this, "memory.low", "onLowMemory");
+    Diagnostics.INSTANCE.clearImageCache();
   }
 }

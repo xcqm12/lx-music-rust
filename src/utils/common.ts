@@ -136,6 +136,10 @@ export const filterFileName = (name: string): string => name.replace(fileNameRxp
  */
 export const similar = (a: string, b: string) => {
   if (!a || !b) return 0
+  // 超长歌名/关键词会让 O(al*bl) 的动态规划在弱 CPU 车机上耗时暴涨，截断足够排序的前缀
+  const MAX_LEN = 200
+  if (a.length > MAX_LEN) a = a.slice(0, MAX_LEN)
+  if (b.length > MAX_LEN) b = b.slice(0, MAX_LEN)
   if (a.length > b.length) { // 保证 a <= b
     let t = b
     b = a

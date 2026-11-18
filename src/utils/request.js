@@ -4,6 +4,10 @@ import BackgroundTimer from 'react-native-background-timer'
 import { requestMsg } from './message'
 import { bHh } from './musicSdk/options'
 import { deflateRaw } from 'pako'
+import { log } from './log'
+
+// 单次响应上限：防止异常超大响应在 Hermes 中 text + JSON.parse 双份驻留导致低内存车机 OOM
+const MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 
 const defaultHeaders = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
@@ -180,17 +184,32 @@ const fetchData = (url, { timeout = 15000, ...options }) => {
       return global.fetch(url, {
         ...options,
         signal: controller.signal,
-      }).then(resp => (options.binary ? resp.blob() : resp.text()).then(text => {
-        // console.log(options, headers, text)
-        return {
-          headers: resp.headers.map,
-          body: text,
-          statusCode: resp.status,
-          statusMessage: resp.statusText,
-          url: resp.url,
-          ok: resp.ok,
+      }).then(resp => {
+        // 先看声明长度，超大响应直接拒绝，避免整包读入内存
+        let declared = 0
+        try {
+          declared = Number(resp.headers.get && resp.headers.get('content-length')) || 0
+        } catch {}
+        if (declared > MAX_RESPONSE_BYTES) {
+          log.error(`[request] response too large: ${declared} bytes ${url}`)
+          throw new Error('response too large')
         }
-      })).then(resp => {
+        return (options.binary ? resp.blob() : resp.text()).then(text => {
+          if (!options.binary && typeof text == 'string' && text.length > MAX_RESPONSE_BYTES) {
+            log.error(`[request] response too large after read: ${text.length} chars ${url}`)
+            throw new Error('response too large')
+          }
+          // console.log(options, headers, text)
+          return {
+            headers: resp.headers.map,
+            body: text,
+            statusCode: resp.status,
+            statusMessage: resp.statusText,
+            url: resp.url,
+            ok: resp.ok,
+          }
+        })
+      }).then(resp => {
         if (options.binary) {
           return blobToBuffer(resp.body).then(buffer => {
             resp.body = buffer

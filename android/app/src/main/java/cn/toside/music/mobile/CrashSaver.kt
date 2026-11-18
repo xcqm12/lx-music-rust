@@ -20,6 +20,7 @@ object CrashSaver {
   private const val CRASH_DIR = "crash"
   private const val MAX_CRASH_FILES = 5
   private const val MAX_STACK_LENGTH = 60_000
+  private const val MAX_REPORT_LENGTH = 160_000
 
   @Volatile
   private var installed = false
@@ -49,9 +50,10 @@ object CrashSaver {
       val dir = File(context.filesDir, CRASH_DIR)
       if (!dir.exists()) dir.mkdirs()
       val time = System.currentTimeMillis()
-      val name = "crash-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date(time)) + ".txt"
+      val name = "crash-" + SimpleDateFormat("yyyyMMdd-HHmmss-SSS", Locale.US).format(Date(time)) + ".txt"
       val file = File(dir, name)
-      file.writeText(buildHeader(context) + "\n[report] $title\n$body\n")
+      val safeBody = if (body.length > MAX_REPORT_LENGTH) body.substring(0, MAX_REPORT_LENGTH) + "\n...truncated" else body
+      file.writeText(buildHeader(context) + "\n[report] $title\n$safeBody\n")
       trimOldFiles(dir)
     } catch (t: Throwable) {
       // ignore

@@ -28,6 +28,35 @@ export const deviceProfile: {
 
 export const exitApp = UtilsModule.exitApp
 
+/** 诊断面包屑：原生同步落盘（带内存快照），崩溃后下次启动并入错误日志 */
+export const recordBreadcrumb = (tag: string, detail = '') => {
+  try {
+    UtilsModule.recordBreadcrumb?.(tag, detail)
+  } catch {
+    // 诊断失败不影响主流程
+  }
+}
+
+export interface MemoryInfo {
+  availMemMB?: number
+  totalMemMB?: number
+  thresholdMB?: number
+  lowMemory?: boolean
+  memoryClassMB?: number
+  largeMemoryClassMB?: number
+  heapUsedMB?: number
+  heapMaxMB?: number
+  diskFreeMB?: number
+}
+
+export const getMemoryInfo = async(): Promise<MemoryInfo | null> => {
+  try {
+    return await UtilsModule.getMemoryInfo?.()
+  } catch {
+    return null
+  }
+}
+
 export const getSupportedAbis = UtilsModule.getSupportedAbis
 
 export const installApk = (filePath: string, fileProviderAuthority: string) => UtilsModule.installApk(filePath, fileProviderAuthority)
