@@ -56,8 +56,9 @@ jobs:
 
           # app 内声明 JNI 符号的是 cn.toside.music.mobile.RustBridge（对应 src/rust 的导出），
           # 必须编译 src/rust；rust-core 的符号（com_lx_music_core_RustCoreBridge_*）无 Kotlin 声明
+          # 只编译 ARM 双架构（与 gradle.properties 一致，x86* 不再进发布包）
           cd src/rust
-          cargo ndk -t armeabi-v7a -t arm64-v8a -t x86 -t x86_64 -o ../../android/app/src/main/jniLibs build --release
+          cargo ndk -t armeabi-v7a -t arm64-v8a -o ../../android/app/src/main/jniLibs build --release
 
           cd ../../android
           chmod +x gradlew
@@ -248,9 +249,9 @@ jobs:
           files: |
             artifacts/lx-music-mobile-v${{ env.PACKAGE_VERSION }}-arm64-v8a.apk
             artifacts/lx-music-mobile-v${{ env.PACKAGE_VERSION }}-armeabi-v7a.apk
-            artifacts/lx-music-mobile-v${{ env.PACKAGE_VERSION }}-x86_64.apk
-            artifacts/lx-music-mobile-v${{ env.PACKAGE_VERSION }}-x86.apk
             artifacts/lx-music-mobile-v${{ env.PACKAGE_VERSION }}-universal.apk
+
+          # 车机发布只出 ARM 双架构 + universal；x86* 仅供模拟器调试（gradle.properties 已裁）
 
           # artifacts/lx-music-mobile-v${{ env.PACKAGE_VERSION }}-sl-arm64-v8a.apk
           # artifacts/lx-music-mobile-v${{ env.PACKAGE_VERSION }}-android_5-universal.apk

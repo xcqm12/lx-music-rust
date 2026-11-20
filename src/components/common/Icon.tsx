@@ -5,21 +5,6 @@ import { memo, type ComponentProps } from 'react'
 import { useTextShadow, useTheme } from '@/store/theme/hook'
 import { StyleSheet, type StyleProp, type TextStyle } from 'react-native'
 
-// import IconAntDesign from 'react-native-vector-icons/AntDesign'
-// import IconEntypo from 'react-native-vector-icons/Entypo'
-// import IconEvilIcons from 'react-native-vector-icons/EvilIcons'
-// import IconFeather from 'react-native-vector-icons/Feather'
-// import IconFontAwesome from 'react-native-vector-icons/FontAwesome'
-// import IconFontAwesome5 from 'react-native-vector-icons/FontAwesome5'
-// import IconFontisto from 'react-native-vector-icons/Fontisto'
-// import IconFoundation from 'react-native-vector-icons/Foundation'
-// import IconIonicons from 'react-native-vector-icons/Ionicons'
-// import IconMaterialIcons from 'react-native-vector-icons/MaterialIcons'
-// import IconMaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
-// import IconOcticons from 'react-native-vector-icons/Octicons'
-// import IconZocial from 'react-native-vector-icons/Zocial'
-// import IconSimpleLineIcons from 'react-native-vector-icons/SimpleLineIcons'
-
 
 const IcoMoon = createIconSetFromIcoMoon(icoMoonConfig)
 
@@ -51,21 +36,3 @@ export const Icon = memo(({ size = 15, rawSize, color, style, ...props }: IconPr
     />
   )
 })
-
-
-export {
-  // IconAntDesign,
-  // IconEntypo,
-  // IconEvilIcons,
-  // IconFeather,
-  // IconFontAwesome,
-  // IconFontAwesome5,
-  // IconFontisto,
-  // IconFoundation,
-  // IconIonicons,
-  // IconMaterialIcons,
-  // IconMaterialCommunityIcons,
-  // IconOcticons,
-  // IconZocial,
-  // IconSimpleLineIcons,
-}

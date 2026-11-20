@@ -287,39 +287,3 @@ const debounceUpdateMetaInfoTools = {
 
 export const delayUpdateMusicInfo = debounceUpdateMetaInfoTools.init()
 
-// export const delayUpdateMusicInfo = ((fn, delay = 800) => {
-//   let delayTimer = null
-//   let isDelayRun = false
-//   let timer = null
-//   let _track = null
-//   return track => {
-//     _track = track
-//     if (timer) {
-//       BackgroundTimer.clearTimeout(timer)
-//       timer = null
-//     }
-//     if (isDelayRun) {
-//       if (delayTimer) {
-//         BackgroundTimer.clearTimeout(delayTimer)
-//         delayTimer = null
-//       }
-//       timer = BackgroundTimer.setTimeout(() => {
-//         timer = null
-//         let track = _track
-//         _track = null
-//         isDelayRun = false
-//         fn(track)
-//       }, delay)
-//     } else {
-//       isDelayRun = true
-//       fn(track)
-//       delayTimer = BackgroundTimer.setTimeout(() => {
-//         delayTimer = null
-//         isDelayRun = false
-//       }, 500)
-//     }
-//   }
-// })(track => {
-//   console.log('+++++delayUpdateMusicPic+++++', track.artwork)
-//   updateMetaInfo(track)
-// })

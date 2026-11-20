@@ -40,43 +40,11 @@ export default () => {
     buttons.play = false
     setButtons()
   }
-  // const handleStop = () => {
-  //   // if (playerState.playMusicInfo.musicInfo != null) return
-  //   // if (buttons.collect) buttons.collect = false
-  //   // buttons.empty = true
-  //   setButtons()
-  // }
-  // const handleSetPlayInfo = () => {
-  //   void updateCollectStatus().then(isExist => {
-  //     if (isExist) setButtons()
-  //   })
-  // }
-  // const handleSetTaskbarThumbnailClip = (clip) => {
-  //   setTaskbarThumbnailClip(clip)
-  // }
-  // const throttleListChange = throttle(async listIds => {
-  //   if (!listIds.includes(loveList.id)) return
-  //   if (await updateCollectStatus()) setButtons()
-  // })
-  // const updateSetting = () => {
-  //   const setting = store.getters.setting
-  //   buttons.lrc = setting.desktopLyric.enable
-  //   buttons.lockLrc = setting.desktopLyric.isLock
-  //   setButtons()
-  // }
   global.app_event.on('play', handlePlay)
   global.app_event.on('pause', handlePause)
   global.app_event.on('stop', handlePause)
-  // global.app_event.on('musicToggled', handleSetPlayInfo)
-  // window.app_event.on(eventTaskbarNames.setTaskbarThumbnailClip, handleSetTaskbarThumbnailClip)
-  // window.app_event.on('myListMusicUpdate', throttleListChange)
 
   return async() => {
-    // const setting = store.getters.setting
-    // buttons.lrc = setting.desktopLyric.enable
-    // buttons.lockLrc = setting.desktopLyric.isLock
-    // await updateCollectStatus()
-    // if (playMusicInfo.musicInfo != null) buttons.empty = false
     setButtons()
   }
 }

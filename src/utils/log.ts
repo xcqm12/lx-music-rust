@@ -1,9 +1,13 @@
 // import { requestStoragePermission } from '@/utils/common'
-import { temporaryDirectoryPath, privateStorageDirectoryPath, existsFile, appendFile, unlink, writeFile, readFile, readDir } from '@/utils/fs'
+import { temporaryDirectoryPath, privateStorageDirectoryPath, existsFile, appendFile, unlink, writeFile, readFile, readDir, stat } from '@/utils/fs'
 
 const logPath = temporaryDirectoryPath + '/error.log'
 // CrashSaver.kt 写入的原生崩溃目录（filesDir/crash）
 const crashDirPath = privateStorageDirectoryPath + '/crash'
+
+// 日志上限：2G 内存车机整读数 MB 日志即可 OOM，超限轮转保留尾部
+const MAX_LOG_FILE_BYTES = 1024 * 1024
+const KEEP_LOG_TAIL_BYTES = 256 * 1024
 
 const logTools = {
   tempLog: [] as Array<{ time: string, type: 'LOG' | 'WARN' | 'ERROR', text: string }> | null,
@@ -16,6 +20,7 @@ const logTools = {
       let isExists = await existsFile(logPath)
       // console.log(isExists)
       if (!isExists) await writeFile(logPath, '')
+      await rotateLogFile()
       await mergeCrashLogs()
       await mergeBreadcrumbs()
       if (this.tempLog?.length) this.writeLog(this.tempLog.map(m => `${m.time} ${m.type} ${m.text}`).join('\n----lx log----\n'))
@@ -24,6 +29,27 @@ const logTools = {
       console.log(err)
     }
   },
+}
+
+/**
+ * error.log 超过上限时轮转：只保留尾部内容重写文件。
+ * 长期开机且频繁出错的车机，日志可涨到数十 MB，整读即 OOM。
+ */
+async function rotateLogFile() {
+  try {
+    const info = await stat(logPath)
+    const size = Number(info?.size ?? 0)
+    if (!size || size <= MAX_LOG_FILE_BYTES) return
+    const content = await readFile(logPath)
+    const tail = content.length > KEEP_LOG_TAIL_BYTES
+      ? content.slice(content.indexOf('\n----lx log----\n', content.length - KEEP_LOG_TAIL_BYTES))
+      : content
+    await writeFile(logPath, '[LOG ROTATED] 旧日志已截断，仅保留尾部\n----lx log----\n' + tail.trimStart())
+    console.log(`[log] rotated error.log: ${size} -> ${(await stat(logPath)).size} bytes`)
+  } catch (err) {
+    // 轮转失败不影响原文件
+    console.log('rotate log failed:', err)
+  }
 }
 
 /**
@@ -76,7 +102,9 @@ export const init = async() => {
 }
 
 export const getLogs = async() => {
-  return readFile(logPath)
+  const content = await readFile(logPath)
+  // 日志页展示与上报都只需尾部；整读数 MB 文本在 2G 设备会 OOM
+  return content.length > 512 * 1024 ? content.slice(-512 * 1024) : content
 }
 
 export const clearLogs = async() => {
@@ -125,60 +153,3 @@ export const log = {
     }
   },
 }
-/*
-if (process.env.NODE_ENV !== 'development') {
-  const logPath = externalDirectoryPath + '/debug.log'
-
-  let tempLog = []
-
-  const log = window.console.log
-  const error = window.console.error
-  const warn = window.console.warn
-
-  const writeLog = msg => appendFile(logPath, '\n' + msg)
-
-  window.console.log = (...msgs) => {
-    log(...msgs)
-    const msg = msgs.map(m => typeof m == 'string' ? m : JSON.stringify(m)).join(' ')
-    if (msg.startsWith('%c')) return
-    const time = new Date().toLocaleString()
-    if (tempLog) {
-      tempLog({ type: 'LOG', time, text: msg })
-    } else writeLog(`${time} LOG ${msg}`)
-  }
-  window.console.error = (...msgs) => {
-    error(...msgs)
-    const msg = msgs.map(m => typeof m == 'string' ? m : JSON.stringify(m)).join(' ')
-    const time = new Date().toLocaleString()
-    if (tempLog) {
-      tempLog({ type: 'ERROR', time, text: msg })
-    } else writeLog(`${time} ERROR ${msg}`)
-  }
-  window.console.warn = (...msgs) => {
-    warn(...msgs)
-    const msg = msgs.map(m => typeof m == 'string' ? m : JSON.stringify(m)).join(' ')
-    const time = new Date().toLocaleString()
-    if (tempLog) {
-      tempLog({ type: 'WARN', time, text: msg })
-    } else writeLog(`${time} WARN ${msg}`)
-  }
-
-  const init = async() => {
-    try {
-      let result = await requestStoragePermission()
-      if (!result) return
-      let isExists = await existsFile(logPath)
-      console.log(logPath, isExists)
-      if (!isExists) await writeFile(logPath, '')
-      writeLog(tempLog(m => `${m.time} ${m.type} ${m.text}`).join('\n'))
-      tempLog = null
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-
-  init()
-}
-
- */

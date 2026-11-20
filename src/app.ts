@@ -50,7 +50,6 @@ void Promise.all([getFontSize(), windowSizeTools.init()]).then(async([fontSize])
   initNavigation(async() => {
     await handleInit()
     if (!isInited) return
-    // import('@/utils/nativeModules/cryptoTest')
 
     await navigations.pushHomeScreen().then(() => {
       void handlePushedHomeScreen()

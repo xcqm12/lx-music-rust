@@ -127,27 +127,6 @@ export default () => {
     }
   }
 
-  // watch(() => playerState.progress.nowPlayTime, (newValue, oldValue) => {
-  //   if (settingState.setting['player.isSavePlayTime'] && !playMusicInfo.isTempPlay) {
-  //     delaySavePlayInfo({
-  //       time: newValue,
-  //       maxTime: playerState.progress.maxPlayTime,
-  //       listId: playMusicInfo.listId as string,
-  //       index: playInfo.playIndex,
-  //     })
-  //   }
-  // })
-  // watch(() => playerState.progress.maxPlayTime, maxPlayTime => {
-  //   if (!playMusicInfo.isTempPlay) {
-  //     delaySavePlayInfo({
-  //       time: playerState.progress.nowPlayTime,
-  //       maxTime: maxPlayTime,
-  //       listId: playMusicInfo.listId as string,
-  //       index: playInfo.playIndex,
-  //     })
-  //   }
-  // })
-
   const handleConfigUpdated: typeof global.state_event.configUpdated = (keys, settings) => {
     if (keys.includes('player.playbackRate')) startUpdateTimeout()
   }

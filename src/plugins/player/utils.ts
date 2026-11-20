@@ -32,56 +32,6 @@ export const isTempId = (trackId = global.lx.playerTrackId) => !trackId || tempI
 //     isFirstPlay = false
 //     // }, 500)
 //   }
-// }
-
-
-// 解决快速切歌导致的通知栏歌曲信息与当前播放歌曲对不上的问题
-// const debouncePlayMusicTools = {
-//   prevPlayMusicPromise: Promise.resolve(),
-//   trackInfo: {},
-//   isDelayUpdate: false,
-//   isDebounced: false,
-//   delay: 1000,
-//   delayTimer: null,
-//   debounce(fn, delay = 100) {
-//     let timer = null
-//     let _tracks = null
-//     let _time = null
-//     return (tracks, time) => {
-//       if (!this.isDebounced && _tracks != null) this.isDebounced = true
-//       _tracks = tracks
-//       _time = time
-//       if (timer) {
-//         BackgroundTimer.clearTimeout(timer)
-//         timer = null
-//       }
-//       if (this.isDelayUpdate) {
-//         if (this.updateDelayTimer) {
-//           BackgroundTimer.clearTimeout(this.updateDelayTimer)
-//           this.updateDelayTimer = null
-//         }
-//         timer = BackgroundTimer.setTimeout(() => {
-//           timer = null
-//           let tracks = _tracks
-//           let time = _time
-//           _tracks = null
-//           _time = null
-//           this.isDelayUpdate = false
-//           fn(tracks, time)
-//         }, delay)
-//       } else {
-//         this.isDelayUpdate = true
-//         fn(tracks, time)
-//         this.updateDelayTimer = BackgroundTimer.setTimeout(() => {
-//           this.updateDelayTimer = null
-//           this.isDelayUpdate = false
-//         }, this.delay)
-//       }
-//     }
-//   },
-//   delayUpdateMusicInfo() {
-//     if (this.delayTimer) BackgroundTimer.clearTimeout(this.delayTimer)
-//     this.delayTimer = BackgroundTimer.setTimeout(() => {
 //       this.delayTimer = null
 //       if (this.trackInfo.tracks && this.trackInfo.tracks.length) delayUpdateMusicInfo(this.trackInfo.tracks[0])
 //     }, this.delay)
