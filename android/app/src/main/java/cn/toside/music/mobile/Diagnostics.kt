@@ -37,6 +37,9 @@ object Diagnostics {
   private const val MAX_DUMP_LENGTH = 160_000
   private const val EXIT_INFO_PREFS = "lx_diagnostics"
   private const val KEY_LAST_EXIT_TS = "last_exit_ts"
+  // 同一 tag+detail 在窗口内重复只计数不写行，防止 memory.trim 等高频事件刷屏
+  private const val SUPPRESS_WINDOW_MS = 30_000L
+  private const val MAX_TRACKED_KEYS = 200
 
   private val lock = Any()
 
@@ -45,6 +48,9 @@ object Diagnostics {
 
   @Volatile
   private var lastPong = 0L
+
+  private val lastWriteByKey = HashMap<String, Long>()
+  private val suppressedByKey = HashMap<String, Int>()
 
   private fun ts(): String = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
 
@@ -59,10 +65,27 @@ object Diagnostics {
     breadcrumb(app, "app.start", "version=${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE})")
   }
 
-  /** 记录一条面包屑（带内存快照），文件超过阈值时保留尾部 */
+  /** 记录一条面包屑（带内存快照），文件超过阈值时保留尾部；
+   *  同一 tag+detail 30s 内重复只累加计数，下次写入时以 "(+N)" 标注被压缩的条数 */
   fun breadcrumb(context: Context, tag: String, detail: String = "") {
     synchronized(lock) {
       try {
+        val now = System.currentTimeMillis()
+        val key = "$tag|$detail"
+        val last = lastWriteByKey[key]
+        if (last != null && now - last < SUPPRESS_WINDOW_MS) {
+          suppressedByKey[key] = (suppressedByKey[key] ?: 0) + 1
+          return
+        }
+        // 防止 key 集合无限增长（detail 含页码/长度等变化值）
+        if (lastWriteByKey.size > MAX_TRACKED_KEYS) {
+          lastWriteByKey.clear()
+          suppressedByKey.clear()
+        }
+        lastWriteByKey[key] = now
+        val suppressed = suppressedByKey.remove(key)
+        val repeatNote = if (suppressed != null && suppressed > 0) "(+$suppressed)" else ""
+
         val dir = File(context.filesDir, DIAG_DIR)
         if (!dir.exists()) dir.mkdirs()
         val file = File(dir, BREADCRUMB_FILE)
@@ -73,7 +96,7 @@ object Diagnostics {
         }
         val safeDetail = detail.replace('\n', ' ').take(600)
         file.appendText(
-          "${ts()} $tag" +
+          "${ts()} $tag$repeatNote" +
             (if (safeDetail.isNotEmpty()) " $safeDetail" else "") +
             " | ${memorySummary(context)}\n",
         )
@@ -118,19 +141,16 @@ object Diagnostics {
     return map
   }
 
-  /** onTrimMemory 回调：记录内存压力并在紧张时释放图片内存缓存 */
+  /** onTrimMemory 回调：只在有诊断价值的级别写面包屑并释放图片缓存。
+   *  RUNNING_MODERATE/UI_HIDDEN/BACKGROUND 是常规调度事件，2G 车机上高频触发，
+   *  全量记录会刷爆日志淹没有效线索（实测一天数十条），故跳过。 */
   fun onTrimMemory(context: Context, level: Int) {
-    val name = when (level) {
-      ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE -> "RUNNING_MODERATE"
-      ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW -> "RUNNING_LOW"
-      ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL -> "RUNNING_CRITICAL"
-      ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN -> "UI_HIDDEN"
-      ComponentCallbacks2.TRIM_MEMORY_BACKGROUND -> "BACKGROUND"
-      ComponentCallbacks2.TRIM_MEMORY_MODERATE -> "MODERATE"
-      ComponentCallbacks2.TRIM_MEMORY_COMPLETE -> "COMPLETE"
-      else -> "LEVEL_$level"
+    when (level) {
+      ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW -> breadcrumb(context, "memory.trim", "RUNNING_LOW")
+      ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL -> breadcrumb(context, "memory.trim", "RUNNING_CRITICAL")
+      ComponentCallbacks2.TRIM_MEMORY_COMPLETE -> breadcrumb(context, "memory.trim", "COMPLETE")
+      else -> { /* 常规调度级别不记录 */ }
     }
-    breadcrumb(context, "memory.trim", name)
     if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) clearImageCache()
   }
 
