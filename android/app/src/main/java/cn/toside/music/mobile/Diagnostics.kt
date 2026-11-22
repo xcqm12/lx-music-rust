@@ -37,9 +37,13 @@ object Diagnostics {
   private const val MAX_DUMP_LENGTH = 160_000
   private const val EXIT_INFO_PREFS = "lx_diagnostics"
   private const val KEY_LAST_EXIT_TS = "last_exit_ts"
-  // 同一 tag+detail 在窗口内重复只计数不写行，防止 memory.trim 等高频事件刷屏
+  // 同一 tag+detail 在窗口内重复只计数不写行，防止高频事件刷屏
   private const val SUPPRESS_WINDOW_MS = 30_000L
   private const val MAX_TRACKED_KEYS = 200
+  // trim 面包屑：2G 车机 LOW/CRITICAL 是常态（avail 110MB 即触发），每级别 1 小时最多 1 条
+  private const val TRIM_MIN_GAP_MS = 60 * 60 * 1000L
+  // 启动后系统调度密集（实测启动 0.4s 即 CRITICAL），此窗口内的 trim 无诊断价值
+  private const val STARTUP_TRIM_GRACE_MS = 60_000L
 
   private val lock = Any()
 
@@ -49,8 +53,13 @@ object Diagnostics {
   @Volatile
   private var lastPong = 0L
 
+  @Volatile
+  private var installedAtMs = 0L
+
   private val lastWriteByKey = HashMap<String, Long>()
   private val suppressedByKey = HashMap<String, Int>()
+  private val lastTrimWriteByLevel = HashMap<Int, Long>()
+  private val trimSuppressedByLevel = HashMap<Int, Int>()
 
   private fun ts(): String = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
 
@@ -59,6 +68,7 @@ object Diagnostics {
   fun install(context: Context) {
     if (installed) return
     installed = true
+    installedAtMs = System.currentTimeMillis()
     val app = context.applicationContext
     collectExitInfo(app)
     startWatchdog(app)
@@ -143,12 +153,36 @@ object Diagnostics {
 
   /** onTrimMemory 回调：只在有诊断价值的级别写面包屑并释放图片缓存。
    *  RUNNING_MODERATE/UI_HIDDEN/BACKGROUND 是常规调度事件，2G 车机上高频触发，
-   *  全量记录会刷爆日志淹没有效线索（实测一天数十条），故跳过。 */
+   *  全量记录会刷爆日志淹没有效线索（实测一天数十条），故跳过。
+   *  LOW/CRITICAL/COMPLETE 在低内存车机也是常态（avail 110~166MB 即触发），
+   *  每级别 1 小时最多记录 1 条，其余累计计数；启动后 60s 内的系统调度不记录。
+   *  注意：面包屑限频不影响 clearImageCache——每次压力信号都要释放缓存。 */
   fun onTrimMemory(context: Context, level: Int) {
     when (level) {
-      ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW -> breadcrumb(context, "memory.trim", "RUNNING_LOW")
-      ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL -> breadcrumb(context, "memory.trim", "RUNNING_CRITICAL")
-      ComponentCallbacks2.TRIM_MEMORY_COMPLETE -> breadcrumb(context, "memory.trim", "COMPLETE")
+      ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW,
+      ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL,
+      ComponentCallbacks2.TRIM_MEMORY_COMPLETE -> {
+        val now = System.currentTimeMillis()
+        // 启动宽限：冷启动阶段系统调度密集（实测启动 0.4s 即 CRITICAL），无诊断价值
+        if (now - installedAtMs >= STARTUP_TRIM_GRACE_MS) {
+          val name = when (level) {
+            ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW -> "RUNNING_LOW"
+            ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL -> "RUNNING_CRITICAL"
+            else -> "COMPLETE"
+          }
+          synchronized(lock) {
+            val last = lastTrimWriteByLevel[level]
+            if (last != null && now - last < TRIM_MIN_GAP_MS) {
+              trimSuppressedByLevel[level] = (trimSuppressedByLevel[level] ?: 0) + 1
+            } else {
+              lastTrimWriteByLevel[level] = now
+              val suppressed = trimSuppressedByLevel.remove(level)
+              val note = if (suppressed != null && suppressed > 0) "(+$suppressed in 1h)" else ""
+              breadcrumb(context, "memory.trim", "$name$note")
+            }
+          }
+        }
+      }
       else -> { /* 常规调度级别不记录 */ }
     }
     if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) clearImageCache()

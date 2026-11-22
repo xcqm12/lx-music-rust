@@ -15,7 +15,7 @@ Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 - **低内存渲染优化**：内置主题背景图统一降采样至最长边 1920px，超大 PNG/JPEG 转 JPEG（累计减小约 7.5MB）；背景图按视图尺寸解码（`resizeMethod`），应用堆 ≤128MB 的低内存车机自动关闭动态背景模糊，降低切换主题、开启动态背景时的内存峰值
 - **2G 内存车机搜索优化**：关闭搜索结果列表的 `removeClippedSubviews`（规避 RN Android 列表快速替换时的原生崩溃）；单次网络响应限制 8MB，防止超大响应在 Hermes 中 OOM；低内存车机「全部音源」搜索改为串行请求，降低峰值内存；封面图按视图尺寸降采样，系统内存紧张时自动释放图片内存缓存
 - **错误/崩溃/ANR 日志收集**：新增原生面包屑（关键操作 + 实时内存快照）、主线程看门狗（阻塞超 12s 抓全线程栈）、进程退出原因采集（Android 11+ 的 ANR/原生崩溃/低内存）、未处理 Promise 拒绝记录；启动时把这些信息并入「设置-错误日志」并随自动上报提交
-- **面包屑降噪**：`memory.trim` 只记录 RUNNING_LOW / RUNNING_CRITICAL / COMPLETE（RUNNING_MODERATE、UI_HIDDEN 等常规调度事件不再刷屏）；同一 tag+detail 30 秒内重复只计数，下次写入以 `(+N)` 标注——2G 车机长期运行日志不再被高频 trim 事件淹没（车机实测一天数十条 trim）
+- **面包屑降噪**：`memory.trim` 只记录 RUNNING_LOW / RUNNING_CRITICAL / COMPLETE（RUNNING_MODERATE、UI_HIDDEN 等常规调度事件不再刷屏）；低内存车机上这些级别也是常态（avail 110~166MB 即触发），进一步按级别 1 小时限频 1 条（超出以 `(+N in 1h)` 标注），启动后 60s 内的调度事件直接忽略；同一 tag+detail 30 秒内重复只计数——2G 车机长期运行日志不再被高频 trim 事件淹没（车机实测一天数十条 trim）
 - **2G+32G 车机深度适配**：错误日志超 1MB 自动轮转（保留尾部 256KB），查看/上报只读尾部，长期开机不再因日志膨胀 OOM；启动时主题/语言/自定义 API 并行初始化，缩短车机 eMMC 冷启动；发布包剔除 x86/x86_64（ARM 双架构 + universal），单包更小、OTA 更省流量；评论列表渲染窗口与其他列表对齐
 - **仓库瘦身**：移除失效 submodule gitlink、未使用的 iconv-lite 依赖、已停止服务的虾米（xm）桩模块与百度（bd）音源死代码、上游遗留调试脚本与约 470 行注释死代码
 
