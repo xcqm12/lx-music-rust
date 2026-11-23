@@ -99,6 +99,14 @@ const hashLog = (text: string) => {
   return hash.toString(16)
 }
 
+// 是否包含真实错误内容：ERROR 行 / 崩溃 / 疑似 ANR / 异常退出。
+// 面包屑（app.start、memory.trim）与轮转标记属于运行信息——低内存车机上 trim 是常态，
+// 若仅因日志非空就在启动检查时上报，会持续产生“未知错误”噪音 issue。
+const hasRealError = (log: string) => {
+  if (log.includes('[CRASH]') || log.includes('[anr]') || log.includes('[exit]')) return true
+  return log.split('\n').some(line => line.includes(' ERROR '))
+}
+
 const getAbi = async() => {
   try {
     return (await getSupportedAbis())[0] ?? ''
@@ -261,6 +269,8 @@ const upload = async(trigger: ReportTrigger): Promise<UploadResult> => {
 
   const log = await getLogs()
   if (!log?.trim()) return { ok: false, message: '日志为空，无需上传' }
+  // 启动检查/错误触发只在有实际错误时上报；手动上传尊重用户意图，不做此过滤
+  if (trigger !== 'manual' && !hasRealError(log)) return { ok: false, message: '日志无实际错误内容，已跳过' }
 
   const truncated = log.length > MAX_LOG_LENGTH
   const content = truncated ? log.slice(-MAX_LOG_LENGTH) : log

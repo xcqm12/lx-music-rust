@@ -6,6 +6,22 @@ Project versioning adheres to [Semantic Versioning](http://semver.org/).
 Commit convention is based on [Conventional Commits](http://conventionalcommits.org/).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [1.9.5](https://github.com/xcqm12/lx-music-rust/compare/v1.9.4...v1.9.5) - 2026-11-23
+
+车机搜索闪退彻底修复（歌单搜索与搜索联想词）+ 自动错误上报误报治理。
+
+### 修复
+
+- **歌单搜索闪退**：歌单结果列表关闭 RN Android `removeClippedSubviews`（歌单搜索结果快速替换列表时触发 "The specified child already has a parent" 类原生崩溃），与歌曲搜索列表保持一致
+- **搜索联想词闪退**：搜索联想词列表关闭 `removeClippedSubviews`——打字阶段联想词列表高频 `setList` 替换即触发同类原生崩溃（车机实测搜索框输入阶段即闪退）
+- **自动上报误报治理**：日志仅含运行信息（`app.start`、`memory.trim` 面包屑，无任何 ERROR 行/崩溃/ANR/退出记录）时，启动检查与错误触发不再自动上报“未知错误”，杜绝低内存车机因 trim 常态触发产生的噪音 issue；手动上传不受影响
+- **trim 面包屑降噪**：`memory.trim` 面包屑仅在系统 `lowMemory=true`（真低内存）时记录——1G 车机 avail 110~166MB 即触发 RUNNING_CRITICAL 但 `low=false` 纯属调度噪音；缓存释放（`clearImageCache`）不受影响，每次压力信号仍立即执行
+
+### 优化
+
+- **歌单低内存搜索**：歌单「全部音源」搜索在低内存车机改串行请求，降低多响应同时解码/解析的内存峰值（与歌曲搜索一致）；单源失败返回空结果，不再拖垮整次搜索
+- **歌单搜索面包屑**：`songlist.start/done/error` 记录来源/页数/结果数（不含搜索词内容），崩溃后可定位最后操作
+
 ## [1.9.4](https://github.com/xcqm12/lx-music-rust/compare/v1.9.3...v1.9.4) - 2026-11-17
 
 车机（Android 6 及以上）适配与稳定性修复：修复歌单/设置页切换主题闪退，修复错误日志经香港中转上报时的“假失败”。

@@ -27,7 +27,9 @@ const List = <T extends ItemT<T>>(props: ListProps<T>, ref: Ref<ListType<T>>) =>
     },
   }))
 
-  return <FlatList removeClippedSubviews={true} keyboardShouldPersistTaps={'always'} {...props} data={list} />
+  // RN Android 的 removeClippedSubviews 在打字联想词高频 setList 替换时易触发原生崩溃
+  // （车机实测搜索框输入阶段即闪退），列表项极轻，关闭裁剪不影响内存。
+  return <FlatList removeClippedSubviews={false} keyboardShouldPersistTaps={'always'} {...props} data={list} />
 }
 
 export default forwardRef(List) as

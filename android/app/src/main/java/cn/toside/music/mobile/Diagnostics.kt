@@ -154,8 +154,9 @@ object Diagnostics {
   /** onTrimMemory 回调：只在有诊断价值的级别写面包屑并释放图片缓存。
    *  RUNNING_MODERATE/UI_HIDDEN/BACKGROUND 是常规调度事件，2G 车机上高频触发，
    *  全量记录会刷爆日志淹没有效线索（实测一天数十条），故跳过。
-   *  LOW/CRITICAL/COMPLETE 在低内存车机也是常态（avail 110~166MB 即触发），
-   *  每级别 1 小时最多记录 1 条，其余累计计数；启动后 60s 内的系统调度不记录。
+   *  LOW/CRITICAL/COMPLETE 在低内存车机也是常态（1G 车机 avail 110~166MB 即触发，
+   *  实测始终 low=false 纯属调度噪音），仅在系统 lowMemory=true（真低内存）时记录，
+   *  并保持每级别 1 小时最多 1 条；启动后 60s 内的系统调度不记录。
    *  注意：面包屑限频不影响 clearImageCache——每次压力信号都要释放缓存。 */
   fun onTrimMemory(context: Context, level: Int) {
     when (level) {
@@ -170,15 +171,18 @@ object Diagnostics {
             ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL -> "RUNNING_CRITICAL"
             else -> "COMPLETE"
           }
-          synchronized(lock) {
-            val last = lastTrimWriteByLevel[level]
-            if (last != null && now - last < TRIM_MIN_GAP_MS) {
-              trimSuppressedByLevel[level] = (trimSuppressedByLevel[level] ?: 0) + 1
-            } else {
-              lastTrimWriteByLevel[level] = now
-              val suppressed = trimSuppressedByLevel.remove(level)
-              val note = if (suppressed != null && suppressed > 0) "(+$suppressed in 1h)" else ""
-              breadcrumb(context, "memory.trim", "$name$note")
+          // 系统未确认低内存时只释放缓存不写面包屑（avail 阈值级别的 trim 无诊断价值）
+          if (isSystemLowMemory(context)) {
+            synchronized(lock) {
+              val last = lastTrimWriteByLevel[level]
+              if (last != null && now - last < TRIM_MIN_GAP_MS) {
+                trimSuppressedByLevel[level] = (trimSuppressedByLevel[level] ?: 0) + 1
+              } else {
+                lastTrimWriteByLevel[level] = now
+                val suppressed = trimSuppressedByLevel.remove(level)
+                val note = if (suppressed != null && suppressed > 0) "(+$suppressed in 1h)" else ""
+                breadcrumb(context, "memory.trim", "$name$note")
+              }
             }
           }
         }
@@ -186,6 +190,17 @@ object Diagnostics {
       else -> { /* 常规调度级别不记录 */ }
     }
     if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) clearImageCache()
+  }
+
+  private fun isSystemLowMemory(context: Context): Boolean {
+    return try {
+      val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+      val mem = ActivityManager.MemoryInfo()
+      am?.getMemoryInfo(mem)
+      mem.lowMemory
+    } catch (t: Throwable) {
+      false
+    }
   }
 
   /** 释放 Fresco 图片内存缓存（低内存车机搜索/切歌时减少 OOM） */

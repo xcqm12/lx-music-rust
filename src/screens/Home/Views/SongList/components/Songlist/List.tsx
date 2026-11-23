@@ -159,7 +159,10 @@ export default forwardRef<ListType, ListProps>(({ onRefresh, onLoadMore, onOpenD
                 maxToRenderPerBatch={4}
                 // updateCellsBatchingPeriod={80}
                 windowSize={8}
-                removeClippedSubviews={true}
+                // RN Android 的 removeClippedSubviews 在搜索/刷新快速替换列表时易触发原生崩溃
+                // （The specified child already has a parent / ViewHolder 相关问题），
+                // 歌单搜索结果为两列卡片列表，同车机歌单搜索闪退直接相关，与 OnlineList 保持一致。
+                removeClippedSubviews={false}
                 // initialNumToRender={12}
                 renderItem={renderItem}
                 keyExtractor={getkey}
