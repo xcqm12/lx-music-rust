@@ -6,6 +6,17 @@ Project versioning adheres to [Semantic Versioning](http://semver.org/).
 Commit convention is based on [Conventional Commits](http://conventionalcommits.org/).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [1.9.6](https://github.com/xcqm12/lx-music-rust/compare/v1.9.5...v1.9.6) - 2026-11-24
+
+自动上报二次治理：网络类错误不再刷屏 issue（车机断网/弱网属常态，不应作为异常上报）。
+
+### 修复
+
+- **网络类拒绝降噪**：未处理 Promise 拒绝中的网络类错误（请求超时 / 无法连接到服务器 / 接口无法访问 / 服务器繁忙 / socket hang up / Network request failed 等）改记为 WARN——保留诊断线索但不触发自动上报（自动上报只监听 ERROR）。一次断网产生十几条相同 rejection 刷爆 issue（#15/#16）的链路就此切断
+- **重复拒绝去重**：相同文本的未处理拒绝 30 秒窗口内只记首条，重复以 `(+N in 30s)` 标注
+- **无新错误闸门**：上报状态记录累计 ERROR 计数快照；上次成功上报后没有新 ERROR 时，启动检查/错误触发不再重复上报（此前日志尾部因 INFO 滚动导致哈希变化，会带着陈旧 ERROR 再次建 issue）
+- **issue 标题修复**：本地化时间戳前缀（"2026年11月24日星期二 中国标准时间 上午7:50:10"）含空格，旧正则剔不干净会把时间戳整段带进标题，改用 ` ERROR ` 后段截取
+
 ## [1.9.5](https://github.com/xcqm12/lx-music-rust/compare/v1.9.4...v1.9.5) - 2026-11-23
 
 车机搜索闪退彻底修复（歌单搜索与搜索联想词）+ 自动错误上报误报治理。

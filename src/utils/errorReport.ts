@@ -38,6 +38,10 @@ interface ReportState {
   lastUploadAt?: number
   lastAttemptAt?: number
   lastLogHash?: string
+  /** 累计 log.error 条数（含历史，持久化避免重启清零） */
+  errorCountTotal?: number
+  /** 上次成功上传时的 errorCountTotal 快照——无新错误则启动检查不再重复上报陈旧日志 */
+  lastUploadedErrorCount?: number
 }
 
 interface UploadResult {
@@ -50,6 +54,8 @@ interface UploadResult {
 let coalesceTimer: ReturnType<typeof setTimeout> | null = null
 let uploading = false
 let cachedToken: string | null = null
+/** 本次运行累计 log.error 条数；initErrorReport 时从持久化状态续接 */
+let errorCount = 0
 
 const isEnabled = () => {
   // 未初始化完成时视为开启（默认开启）
@@ -124,12 +130,14 @@ const getDeviceName = () => {
   }
 }
 
-// 取最后一条 ERROR 行的前 80 字符作为标题摘要；纯崩溃日志则标记为原生崩溃
+// 取最后一条 ERROR 行" ERROR "之后的内容作为标题摘要；纯崩溃日志则标记为原生崩溃。
+// 用 split 而非 ^\S+\s 前缀剔除——时间戳是本地化格式（"2026年11月24日星期二 中国标准时间 上午7:50:10"），
+// 含空格，单前缀正则剔不干净会把时间戳带进 issue 标题。
 const buildSummary = (log: string) => {
   const lines = log.split('\n')
   for (let i = lines.length - 1; i >= 0; i--) {
     if (!lines[i].includes(' ERROR ')) continue
-    const summary = lines[i].replace(/^\S+\s+ERROR\s*/, '').trim()
+    const summary = lines[i].split(' ERROR ').pop()?.trim() ?? ''
     if (summary) return summary.slice(0, 80)
   }
   if (log.includes('[CRASH]')) return '原生崩溃'
@@ -282,6 +290,11 @@ const upload = async(trigger: ReportTrigger): Promise<UploadResult> => {
     if (state.lastAttemptAt && now - state.lastAttemptAt < MIN_ATTEMPT_INTERVAL) return { ok: false, message: '距上次尝试过近，已跳过' }
     if (state.lastUploadAt && now - state.lastUploadAt < MIN_UPLOAD_INTERVAL) return { ok: false, message: '距上次上传不足 6 小时，已跳过' }
     if (contentHash === state.lastLogHash) return { ok: false, message: '日志无变化，已跳过' }
+    // 上次上报后没有新 ERROR：日志尾部的哈希变化可能只是 INFO 滚动，
+    // 不能证明出现了新问题——不再重复上报陈旧错误（启动检查 stale 报告的根因）
+    if (state.lastUploadedErrorCount != null && errorCount === state.lastUploadedErrorCount) {
+      return { ok: false, message: '上次上报后无新错误，已跳过' }
+    }
     state.lastAttemptAt = now
     await saveState(state)
   }
@@ -317,6 +330,7 @@ const upload = async(trigger: ReportTrigger): Promise<UploadResult> => {
       const newState = await loadState()
       newState.lastUploadAt = Date.now()
       newState.lastLogHash = contentHash
+      newState.lastUploadedErrorCount = errorCount
       await saveState(newState)
     }
     return result
@@ -326,9 +340,14 @@ const upload = async(trigger: ReportTrigger): Promise<UploadResult> => {
   }
 }
 
-// log.error 钩子：错误发生后延迟合并窗口再上传，避免一次异常刷多条
+// log.error 钩子：计数 + 错误发生后延迟合并窗口再上传，避免一次异常刷多条
 const notifyError = (_msg: string) => {
   if (!isEnabled()) return
+  errorCount++
+  void loadState().then(async state => {
+    state.errorCountTotal = errorCount
+    await saveState(state)
+  }).catch(() => { /* 持久化失败不影响计数 */ })
   if (coalesceTimer) clearTimeout(coalesceTimer)
   coalesceTimer = setTimeout(() => {
     coalesceTimer = null
@@ -342,6 +361,10 @@ export const uploadNow = async(): Promise<UploadResult> => {
 
 /** 注册错误监听并在启动后做一次节流检查（原生崩溃日志此时已并入 error.log） */
 export const initErrorReport = () => {
+  // 续接累计错误计数（重启后从持久化状态恢复，避免启动检查把历史错误当新错误）
+  void loadState().then(state => {
+    errorCount = state.errorCountTotal ?? 0
+  }).catch(() => { /* 保持 0 */ })
   setLogErrorListener(notifyError)
   setTimeout(() => {
     void upload('startup')

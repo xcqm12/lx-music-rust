@@ -32,6 +32,53 @@ const errorHandler = (e: Error, isFatal: boolean) => {
   log.error(e.stack)
 }
 
+// 网络类拒绝是车机离线/弱网的常态（issue #15/#16：一次断网，十几个并行请求同时超时，
+// 逐条 ERROR 刷爆错误日志并触发自动上报），记为 WARN——保留线索但不触发自动上报
+// （errorReport 只监听 log.error），配合下方 30s 去重，一段断网只留一条。
+const NETWORK_REJECTION_PATTERNS = [
+  '请求超时',
+  '无法连接到服务器',
+  '接口无法访问',
+  '取消http请求',
+  '服务器繁忙',
+  'socket hang up',
+  'Network request failed',
+  'Aborted',
+  'timed out',
+  'timeout',
+]
+
+const isNetworkRejection = (text: string) => NETWORK_REJECTION_PATTERNS.some(p => text.includes(p))
+
+// 30s 窗口内相同文本的 rejection 只记首条，重复只累加计数，下次写入时以 (+N in 30s) 标注
+const REJECTION_SUPPRESS_WINDOW = 30_000
+let lastRejectionText = ''
+let lastRejectionAt = 0
+let suppressedRejectionCount = 0
+
+const handleUnhandledRejection = (reason: unknown) => {
+  const text = reason instanceof Error ? (reason.stack ?? `${reason.name}: ${reason.message}`) : String(reason)
+  const now = Date.now()
+  if (text === lastRejectionText && now - lastRejectionAt < REJECTION_SUPPRESS_WINDOW) {
+    suppressedRejectionCount++
+    lastRejectionAt = now
+    return
+  }
+  const isRepeat = text === lastRejectionText
+  const note = isRepeat && suppressedRejectionCount > 0
+    ? ` (+${suppressedRejectionCount} in 30s)`
+    : ''
+  suppressedRejectionCount = 0
+  lastRejectionText = text
+  lastRejectionAt = now
+  const line = `[UNHANDLED REJECTION] ${text}${note}`
+  if (isNetworkRejection(text)) {
+    log.warn(line)
+  } else {
+    log.error(line)
+  }
+}
+
 if (process.env.NODE_ENV !== 'development') {
   setJSExceptionHandler(errorHandler)
 
@@ -54,8 +101,7 @@ if (process.env.NODE_ENV !== 'development') {
     hermes?.enablePromiseRejectionTracker?.({
       allRejections: true,
       onUnhandled: (_id, reason) => {
-        const text = reason instanceof Error ? (reason.stack ?? `${reason.name}: ${reason.message}`) : String(reason)
-        log.error(`[UNHANDLED REJECTION] ${text}`)
+        handleUnhandledRejection(reason)
       },
       onHandled: () => {},
     })
