@@ -141,7 +141,8 @@ const buildSummary = (log: string) => {
     if (summary) return summary.slice(0, 80)
   }
   if (log.includes('[CRASH]')) return '原生崩溃'
-  return '未知错误'
+  // 兜底（手动上传可能只有面包屑等运行信息）：可分诊的标题胜过含糊的"未知错误"（issue #18）
+  return '仅运行记录（无 ERROR/崩溃详情）'
 }
 
 const buildBody = async(trigger: ReportTrigger, log: string, truncated: boolean) => {

@@ -6,8 +6,12 @@ import { bHh } from './musicSdk/options'
 import { deflateRaw } from 'pako'
 import { log } from './log'
 
-// 单次响应上限：防止异常超大响应在 Hermes 中 text + JSON.parse 双份驻留导致低内存车机 OOM
-const MAX_RESPONSE_BYTES = 8 * 1024 * 1024
+// 单次响应上限（按类型分流）：
+// - text/JSON 8MB：防止异常超大响应在 Hermes 中 text + JSON.parse 双份驻留导致低内存车机 OOM
+// - binary 64MB：音频（FLAC/Hi-Res 单文件 20MB+）与歌词等二进制资源是合法大文件，
+//   统一 8MB 会误伤无损播放/自定义音源的试听检测（issue #17），放宽到 64MB
+const MAX_TEXT_BYTES = 8 * 1024 * 1024
+const MAX_BINARY_BYTES = 64 * 1024 * 1024
 
 const defaultHeaders = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
@@ -185,17 +189,18 @@ const fetchData = (url, { timeout = 15000, ...options }) => {
         ...options,
         signal: controller.signal,
       }).then(resp => {
-        // 先看声明长度，超大响应直接拒绝，避免整包读入内存
+        // 先看声明长度，超大响应直接拒绝，避免整包读入内存（上限按 binary/text 分流）
+        const maxBytes = options.binary ? MAX_BINARY_BYTES : MAX_TEXT_BYTES
         let declared = 0
         try {
           declared = Number(resp.headers.get && resp.headers.get('content-length')) || 0
         } catch {}
-        if (declared > MAX_RESPONSE_BYTES) {
-          log.error(`[request] response too large: ${declared} bytes ${url}`)
+        if (declared > maxBytes) {
+          log.error(`[request] response too large: ${declared} bytes ${options.binary ? '(binary)' : '(text)'} ${url}`)
           throw new Error('response too large')
         }
         return (options.binary ? resp.blob() : resp.text()).then(text => {
-          if (!options.binary && typeof text == 'string' && text.length > MAX_RESPONSE_BYTES) {
+          if (!options.binary && typeof text == 'string' && text.length > MAX_TEXT_BYTES) {
             log.error(`[request] response too large after read: ${text.length} chars ${url}`)
             throw new Error('response too large')
           }
@@ -212,6 +217,10 @@ const fetchData = (url, { timeout = 15000, ...options }) => {
       }).then(resp => {
         if (options.binary) {
           return blobToBuffer(resp.body).then(buffer => {
+            if (buffer.length > MAX_BINARY_BYTES) {
+              log.error(`[request] response too large after read: ${buffer.length} bytes (binary) ${url}`)
+              throw new Error('response too large')
+            }
             resp.body = buffer
             return resp
           })

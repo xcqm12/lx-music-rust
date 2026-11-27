@@ -6,6 +6,16 @@ Project versioning adheres to [Semantic Versioning](http://semver.org/).
 Commit convention is based on [Conventional Commits](http://conventionalcommits.org/).
 Change log format is based on [Keep a Changelog](http://keepachangelog.com/).
 
+## [1.9.7](https://github.com/xcqm12/lx-music-rust/compare/v1.9.6...v1.9.7) - 2026-11-27
+
+修复无损音乐播放被响应上限误伤（#17）+ 上报标题可分诊（#18）。
+
+### 修复
+
+- **无损音乐误伤修复**：v1.9.4 引入的 8MB 单响应上限未按类型区分——FLAC/Hi-Res 音频单文件 20MB+ 是合法资源，播放时被误判为"response too large"直接拒绝（#17）。上限改为按类型分流：文本/JSON 维持 8MB（防 Hermes 中 text+JSON.parse 双份驻留 OOM），二进制（音频/歌词等）放宽到 64MB
+- **二进制读后校验补齐**：binary 路径此前仅检查声明长度（content-length），下载后未校验 Buffer 长度，补齐
+- **上报标题可分诊**：手动上传仅含运行信息（面包屑等、无 ERROR/崩溃）时，issue 标题由含糊的「未知错误」改为「仅运行记录（无 ERROR/崩溃详情）」（#18）
+
 ## [1.9.6](https://github.com/xcqm12/lx-music-rust/compare/v1.9.5...v1.9.6) - 2026-11-24
 
 自动上报二次治理：网络类错误不再刷屏 issue（车机断网/弱网属常态，不应作为异常上报）。
