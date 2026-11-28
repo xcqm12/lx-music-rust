@@ -141,6 +141,7 @@ impl AudioEngine {
                                                         s.is_playing = true;
                                                         s.is_paused = false;
                                                     }
+                                                    event_sender.send(AudioEvent::PlaybackStarted).await.ok();
                                                     event_sender.send(AudioEvent::DurationChanged(dec.duration().unwrap_or(0.0))).await.ok();
                                                     decoder = Some(dec);
                                                 }
@@ -290,10 +291,36 @@ impl AudioEngine {
                 .await
                 .map_err(|e| Error::Player(format!("HTTP request failed: {}", e)))?;
 
+            // 非音频响应（404 错误页/反爬 HTML）不再当 mp3 解码——之前会静默失败或解出垃圾
+            let content_type = response
+                .headers()
+                .get(reqwest::header::CONTENT_TYPE)
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("")
+                .to_lowercase();
+            let status = response.status();
+            if !status.is_success() {
+                return Err(Error::Player(format!(
+                    "源返回 {status}（曲目无版权/已下架/试听受限）"
+                )));
+            }
+            if content_type.contains("text/") || content_type.contains("json") {
+                return Err(Error::Player(format!(
+                    "源返回非音频内容（{content_type}），曲目大概率无版权或链接失效"
+                )));
+            }
+
             let bytes = response
                 .bytes()
                 .await
                 .map_err(|e| Error::Player(format!("Failed to download: {}", e)))?;
+
+            if bytes.len() < 4096 {
+                return Err(Error::Player(format!(
+                    "响应过小（{} 字节），非有效音频",
+                    bytes.len()
+                )));
+            }
 
             let cursor = std::io::Cursor::new(bytes.to_vec());
             decoder.open(Box::new(cursor))
