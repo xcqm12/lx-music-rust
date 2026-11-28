@@ -90,8 +90,12 @@ impl AudioEngine {
             let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
             rt.block_on(async move {
                 let mut decoder: Option<Box<dyn AudioDecoder>> = None;
-                let mut buffer: Vec<f32> = Vec::new();
+                let mut output: Option<crate::output::AudioOutput> = None;
                 let mut is_eof = false;
+                // position = seek_base + 真实回调消费秒数（seek/换曲时重置）
+                let mut seek_base: f64 = 0.0;
+                let mut last_pos_emitted: f64 = -1.0;
+                let _primed = false;
 
                 loop {
                     tokio::select! {
@@ -99,7 +103,6 @@ impl AudioEngine {
                             match cmd {
                                 Some(EngineCommand::PlayUrl(url)) => {
                                     is_eof = false;
-                                    buffer.clear();
 
                                     let ext = Self::get_extension(&url);
                                     match DecoderFactory::create_by_extension(&ext) {
@@ -108,6 +111,27 @@ impl AudioEngine {
                                                 Ok(()) => {
                                                     let sr = dec.sample_rate();
                                                     let ch = dec.channels();
+                                                    // 建真实输出流（参数变化或首次时重建）
+                                                    let need_rebuild = match &output {
+                                                        Some(o) => o.sample_rate() != sr || o.channels() != ch,
+                                                        None => true,
+                                                    };
+                                                    if need_rebuild {
+                                                        match crate::output::AudioOutput::new(sr, ch) {
+                                                            Ok(o) => output = Some(o),
+                                                            Err(e) => {
+                                                                event_sender.send(AudioEvent::Error(format!("audio output: {e}"))).await.ok();
+                                                                decoder = Some(dec);
+                                                                continue;
+                                                            }
+                                                        }
+                                                    }
+                                                    if let Some(ref o) = output {
+                                                        o.flush();
+                                                        o.reset_played();
+                                                    }
+                                                    seek_base = 0.0;
+                                                    last_pos_emitted = -1.0;
                                                     {
                                                         let mut s = state.write().await;
                                                         s.sample_rate = sr;
@@ -117,7 +141,6 @@ impl AudioEngine {
                                                         s.is_playing = true;
                                                         s.is_paused = false;
                                                     }
-                                                    event_sender.send(AudioEvent::PlaybackStarted).await.ok();
                                                     event_sender.send(AudioEvent::DurationChanged(dec.duration().unwrap_or(0.0))).await.ok();
                                                     decoder = Some(dec);
                                                 }
@@ -135,6 +158,8 @@ impl AudioEngine {
                                     let mut s = state.write().await;
                                     if s.is_playing && !s.is_paused {
                                         s.is_paused = true;
+                                        // 丢弃未播样本：暂停即静音、进度停在当前真实位置
+                                        if let Some(ref o) = output { o.flush(); }
                                         event_sender.send(AudioEvent::PlaybackPaused).await.ok();
                                     }
                                 }
@@ -142,6 +167,8 @@ impl AudioEngine {
                                     let mut s = state.write().await;
                                     if s.is_paused {
                                         s.is_paused = false;
+                                        if let Some(ref o) = output { o.reset_played(); }
+                                        seek_base = s.position;
                                         event_sender.send(AudioEvent::PlaybackStarted).await.ok();
                                     }
                                 }
@@ -152,7 +179,8 @@ impl AudioEngine {
                                     s.position = 0.0;
                                     s.buffered = 0.0;
                                     decoder = None;
-                                    buffer.clear();
+                                    if let Some(ref o) = output { o.flush(); o.reset_played(); }
+                                    seek_base = 0.0;
                                     is_eof = false;
                                     event_sender.send(AudioEvent::PlaybackStopped).await.ok();
                                 }
@@ -161,7 +189,9 @@ impl AudioEngine {
                                         if let Err(e) = dec.seek(position) {
                                             event_sender.send(AudioEvent::Error(e.to_string())).await.ok();
                                         } else {
-                                            buffer.clear();
+                                            if let Some(ref o) = output { o.flush(); o.reset_played(); }
+                                            seek_base = position;
+                                            last_pos_emitted = position;
                                             is_eof = false;
                                             let mut s = state.write().await;
                                             s.position = position;
@@ -172,6 +202,7 @@ impl AudioEngine {
                                 Some(EngineCommand::SetVolume(vol)) => {
                                     let mut s = state.write().await;
                                     s.volume = vol.clamp(0.0, 1.0);
+                                    if let Some(ref o) = output { o.set_volume(s.volume); }
                                 }
                                 Some(EngineCommand::Shutdown) => {
                                     break;
@@ -180,33 +211,33 @@ impl AudioEngine {
                             }
                         }
                         _ = tokio::time::sleep(Duration::from_millis(10)) => {
-                            let is_playing = {
+                            // 回调错误上报
+                            if let Some(ref o) = output {
+                                if let Some(n) = o.take_error() {
+                                    event_sender.send(AudioEvent::Error(format!("audio callback errors: {n}"))).await.ok();
+                                }
+                            }
+
+                            let (is_playing, is_paused) = {
                                 let s = state.read().await;
-                                s.is_playing && !s.is_paused
+                                (s.is_playing, s.is_paused)
                             };
 
-                            if is_playing && !is_eof {
-                                if let Some(ref mut dec) = decoder {
-                                    if buffer.len() < 65536 {
+                            if is_playing && !is_paused && !is_eof {
+                                if let (Some(ref mut dec), Some(ref o)) = (decoder.as_mut(), output.as_ref()) {
+                                    // 环形缓冲欠半时解码补充
+                                    let capacity = o.capacity_samples();
+                                    let queued = o.queued_samples();
+                                    if queued < capacity / 2 {
                                         match dec.decode_frame() {
                                             Ok(Some(frame)) => {
-                                                buffer.extend_from_slice(&frame.data);
-                                                let sr = dec.sample_rate() as f64;
-                                                let ch = dec.channels() as f64;
-                                                let buffered = buffer.len() as f64 / (sr * ch);
-                                                {
-                                                    let mut s = state.write().await;
-                                                    s.buffered = buffered;
-                                                }
-                                                event_sender.send(AudioEvent::Buffering(buffered.min(1.0) as f32)).await.ok();
+                                                o.write(&frame.data);
+                                                let buffered = o.queued_samples() as f32 / capacity.max(1) as f32;
+                                                let mut s = state.write().await;
+                                                s.buffered = (buffered.min(1.0)) as f64;
                                             }
                                             Ok(None) => {
                                                 is_eof = true;
-                                                if buffer.is_empty() {
-                                                    let mut s = state.write().await;
-                                                    s.is_playing = false;
-                                                    event_sender.send(AudioEvent::Completed).await.ok();
-                                                }
                                             }
                                             Err(e) => {
                                                 event_sender.send(AudioEvent::Error(e.to_string())).await.ok();
@@ -217,25 +248,25 @@ impl AudioEngine {
                                 }
                             }
 
-                            if is_playing && !buffer.is_empty() {
-                                let s = state.read().await;
-                                let sr = s.sample_rate as f64;
-                                let ch = s.channels as f64;
-                                let advance = 0.01 * sr * ch;
-                                drop(s);
-
-                                let samples_to_advance = advance as usize;
-                                if buffer.len() >= samples_to_advance {
-                                    buffer.drain(0..samples_to_advance);
-                                    let mut s = state.write().await;
-                                    s.position += 0.01;
-                                    event_sender.send(AudioEvent::PositionChanged(s.position)).await.ok();
-                                } else if is_eof {
-                                    buffer.clear();
+                            // 真实进度：回调消费量；缓冲播空且已 EOF → 完成
+                            if let Some(ref o) = output {
+                                let pos = seek_base + o.played_seconds();
+                                let queued = o.queued_samples();
+                                if is_eof && queued == 0 && is_playing && !is_paused {
                                     let mut s = state.write().await;
                                     s.is_playing = false;
                                     s.position = s.duration;
                                     event_sender.send(AudioEvent::Completed).await.ok();
+                                    decoder = None;
+                                    is_eof = false;
+                                }
+                                if (pos - last_pos_emitted).abs() >= 0.2 {
+                                    {
+                                        let mut s = state.write().await;
+                                        s.position = pos;
+                                    }
+                                    last_pos_emitted = pos;
+                                    event_sender.send(AudioEvent::PositionChanged(pos)).await.ok();
                                 }
                             }
                         }

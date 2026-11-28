@@ -1,4 +1,5 @@
 pub mod audio_engine;
+pub mod output;
 pub mod decoder;
 pub mod playlist;
 pub mod events;
