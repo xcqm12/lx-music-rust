@@ -25,14 +25,16 @@ impl NeteaseSource {
         
         // 第一次 AES 加密
         let first = crypto::aes_cbc_encrypt(text.as_bytes(), secret_key, iv);
-        
+
         // 生成随机 key
         let rand_key: String = (0..16)
             .map(|_| (b'a' + rand::random::<u8>() % 26) as char)
             .collect();
-        
-        // 第二次 AES 加密
-        let second = crypto::aes_cbc_encrypt(&first, rand_key.as_bytes(), iv);
+
+        // 第二次 AES 加密：明文必须是内层密文的 base64（对齐 RN weapi 的 btoa(aesEncrypt(...))，
+        // 缺这一步服务端解不开，返回错误页导致 "error decoding response body"）
+        let first_b64 = crypto::base64_encode(&first);
+        let second = crypto::aes_cbc_encrypt(first_b64.as_bytes(), rand_key.as_bytes(), iv);
         
         // RSA 加密随机 key
         let rsa_key = "010001";
@@ -57,21 +59,71 @@ impl NeteaseSource {
     /// 发送 weapi 请求
     async fn weapi_request(&self, endpoint: &str, data: Value) -> Result<Value> {
         let url = format!("{}/weapi/{}", self.base_url, endpoint);
-        
+
         let encrypted = self.encrypt_data(&data.to_string())?;
-        
+
         let mut headers = reqwest::header::HeaderMap::new();
         for (k, v) in self.build_headers() {
             headers.insert(k, v.parse().unwrap());
         }
-        
+
         let resp = self.client
             .post(&url)
             .headers(headers)
             .form(&encrypted)
             .send()
             .await?;
-        
+
+        let json: Value = resp.json().await?;
+        Ok(json)
+    }
+
+    /// 搜索歌单（type=1000，经典端点）。trait 之外的源特定能力；仅网易实现，供桌面/独立壳直接调用。
+    pub async fn search_songlists(
+        &self,
+        keyword: &str,
+        page: u32,
+        limit: u32,
+    ) -> Result<Vec<crate::SonglistBrief>> {
+        let json = self.classic_search(keyword, 1000, page, limit).await?;
+
+        let mut results = Vec::new();
+
+        if let Some(lists) = json.get("result").and_then(|r| r.get("playlists")).and_then(|s| s.as_array()) {
+            for item in lists {
+                results.push(crate::SonglistBrief {
+                    id: item.get("id").and_then(|v| v.as_u64()).unwrap_or(0),
+                    name: item.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                    cover: item.get("coverImgUrl").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                    creator: item
+                        .get("creator")
+                        .and_then(|c| c.get("nickname"))
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                    track_count: item.get("trackCount").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+                    play_count: item.get("playCount").and_then(|v| v.as_u64()).unwrap_or(0),
+                });
+            }
+        }
+
+        Ok(results)
+    }
+
+    /// 经典公开搜索端点（免 cookie 免加密；weapi 对无凭证客户端返回空结果/错误页）
+    pub async fn classic_search(&self, keyword: &str, search_type: u32, page: u32, limit: u32) -> Result<Value> {
+        let url = format!("{}/api/search/get/web", self.base_url);
+        let resp = self.client
+            .get(&url)
+            .header("Referer", "https://music.163.com")
+            .query(&[
+                ("s", keyword),
+                ("type", &search_type.to_string()),
+                ("limit", &limit.to_string()),
+                ("offset", &((page - 1) * limit).to_string()),
+            ])
+            .send()
+            .await?;
         let json: Value = resp.json().await?;
         Ok(json)
     }
@@ -87,63 +139,72 @@ impl MusicSourceProvider for NeteaseSource {
         MusicSource::Wy
     }
     
+    /// 经典公开搜索端点（免 cookie 免加密；weapi 对无凭证客户端返回空结果/错误页）
     async fn search(
         &self,
         keyword: &str,
         page: u32,
         limit: u32,
     ) -> Result<Vec<MusicInfo>> {
-        let data = serde_json::json!({
-            "s": keyword,
-            "type": 1,
-            "offset": (page - 1) * limit,
-            "limit": limit,
-        });
-        
-        let json = self.weapi_request("cloudsearch/get/web", data).await?;
-        
+        let json = self.classic_search(keyword, 1, page, limit).await?;
+
         let mut results = Vec::new();
-        
+
         if let Some(songs) = json.get("result").and_then(|r| r.get("songs")).and_then(|s| s.as_array()) {
             for song in songs {
-                if let Ok(music_info) = self.parse_music_info(song) {
-                    results.push(music_info);
-                }
+                let id = song.get("id").and_then(|v| v.as_u64()).unwrap_or(0).to_string();
+                let name = song.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let singer: Vec<String> = song
+                    .get("artists")
+                    .and_then(|a| a.as_array())
+                    .map(|arr| {
+                        arr.iter()
+                            .filter_map(|a| a.get("name").and_then(|n| n.as_str()))
+                            .map(|n| n.to_string())
+                            .collect()
+                    })
+                    .unwrap_or_default();
+                let album_name = song
+                    .get("album")
+                    .and_then(|a| a.get("name"))
+                    .and_then(|n| n.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let duration_ms = song.get("duration").and_then(|v| v.as_u64()).unwrap_or(0);
+                let pic_url = song
+                    .get("album")
+                    .and_then(|a| a.get("picUrl"))
+                    .and_then(|p| p.as_str())
+                    .map(|s| s.to_string());
+
+                let mut quality = std::collections::BTreeMap::new();
+                quality.insert(MusicQuality::Lq, id.clone());
+                results.push(MusicInfo {
+                    id,
+                    name,
+                    singer,
+                    album_name,
+                    interval: (duration_ms / 1000) as u32,
+                    source: MusicSource::Wy,
+                    quality,
+                    pic_url,
+                });
             }
         }
-        
+
         Ok(results)
     }
-    
+
     async fn get_music_url(
         &self,
         music_info: &MusicInfo,
-        quality: MusicQuality,
+        _quality: MusicQuality,
     ) -> Result<String> {
-        let br = match quality {
-            MusicQuality::Lq => 128000,
-            MusicQuality::Mq => 192000,
-            MusicQuality::Hq => 320000,
-            MusicQuality::Sq => 999000,
-            MusicQuality::Hires => 999000,
-        };
-        
-        let data = serde_json::json!({
-            "ids": [music_info.id.parse::<u64>().unwrap_or(0)],
-            "br": br,
-        });
-        
-        let json = self.weapi_request("song/enhance/player/url", data).await?;
-        
-        if let Some(urls) = json.get("data").and_then(|d| d.as_array()) {
-            if let Some(first) = urls.first() {
-                if let Some(url) = first.get("url").and_then(|u| u.as_str()) {
-                    return Ok(url.to_string());
-                }
-            }
-        }
-        
-        Err(Error::MusicSource("Failed to get music URL".to_string()))
+        // 公开外链端点：302 重定向到 128k mp3（无版权/下架曲目返回错误页，由调用方判失败）
+        Ok(format!(
+            "https://music.163.com/song/media/outer/url?id={}.mp3",
+            music_info.id
+        ))
     }
     
     async fn get_lyric(&self, music_info: &MusicInfo) -> Result<LyricInfo> {

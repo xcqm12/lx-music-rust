@@ -9,6 +9,17 @@ use common::{MusicInfo, MusicQuality, MusicSource, Result};
 use reqwest::Client;
 use std::sync::Arc;
 
+/// 歌单搜索结果摘要（跨壳通用：桌面/独立壳/重写壳）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SonglistBrief {
+    pub id: u64,
+    pub name: String,
+    pub cover: String,
+    pub creator: String,
+    pub track_count: u32,
+    pub play_count: u64,
+}
+
 /// 音乐源接口 trait
 #[async_trait]
 pub trait MusicSourceProvider: Send + Sync {
@@ -126,16 +137,27 @@ impl MusicSourceManager {
         limit: u32,
     ) -> Vec<(MusicSource, Result<Vec<MusicInfo>>)> {
         let mut results = Vec::new();
-        
+
         for entry in self.sources.iter() {
             let source_id = entry.key().clone();
             let source = Arc::clone(&*entry.value());
-            
+
             let result = source.search(keyword, page, limit).await;
             results.push((source_id, result));
         }
-        
+
         results
+    }
+
+    /// 歌单搜索（当前仅网易实现；SonglistBrief 见顶部）
+    pub async fn search_songlists(
+        &self,
+        keyword: &str,
+        page: u32,
+        limit: u32,
+    ) -> Result<Vec<SonglistBrief>> {
+        let wy = sources::netease::NeteaseSource::new(Arc::clone(&self.http_client));
+        wy.search_songlists(keyword, page, limit).await
     }
     
     /// 获取音乐 URL
